@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سفرة الدار | Kitchen</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #ff6600; --bg-dark: #0f0f0f; --card-bg: #1e1e1e;
+            --text-light: #ffffff; --text-gray: #aaaaaa; --border: #333333;
+            --success: #00c851; --danger: #ff4444; --info: #33b5e5;
+            --updated-color: #aa00ff;
+        }
+        * { box-sizing: border-box; }
+        body { background-color: var(--bg-dark); color: var(--text-light); font-family: 'Cairo', sans-serif; margin: 0; padding: 20px; }
+        
+        #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .start-btn { padding: 20px 60px; font-size: 1.5rem; background: transparent; color: var(--primary); border: 2px solid var(--primary); border-radius: 50px; cursor: pointer; font-family: 'Cairo'; font-weight: bold; transition: 0.3s; }
+        .start-btn:hover { background: var(--primary); color: #000; box-shadow: 0 0 30px rgba(255,102,0,0.5); }
+
+        header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 2px solid var(--border); margin-bottom: 20px; }
+        .brand { font-size: 1.8rem; font-weight: 900; letter-spacing: 1px; display: flex; align-items: center; gap: 15px; }
+        .brand img { width: 55px; height: 55px; border-radius: 50%; border: 2px solid var(--primary); object-fit: cover; }
+        .system-info { text-align: left; }
+        .clock { font-size: 1.4rem; font-weight: bold; font-family: monospace; }
+        .status { color: var(--success); font-size: 0.8rem; font-weight: bold; }
+
+        .tabs-container { display: flex; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px; }
+        .tab-btn { background: #222; color: #888; border: 1px solid #333; padding: 10px 25px; border-radius: 8px; cursor: pointer; font-family: 'Cairo'; font-weight: bold; font-size: 1.1rem; transition: 0.3s; display: flex; align-items: center; gap: 8px; }
+        .tab-btn.active { background: var(--primary); color: #000; border-color: var(--primary); }
+        .tab-badge { background: #000; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+
+        .ticket { background: var(--card-bg); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); display: flex; flex-direction: column; animation: fadeIn 0.5s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.3); position: relative; }
+        .ticket.completed-ticket { opacity: 0.8; border-color: #444; filter: grayscale(0.2); }
+        .ticket.completed-ticket .t-header { background: #1a1a1a; border-top-color: #444; }
+        .ticket.completed-ticket .t-id { color: #888; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .t-header { background: #252525; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); border-top: 4px solid var(--primary); }
+        .t-id { font-size: 1.6rem; font-weight: 900; color: var(--primary); }
+        .t-time { font-family: monospace; color: var(--text-gray); font-size: 1rem; }
+
+        .t-tags { padding: 10px 15px; background: #2a2a2a; display: flex; justify-content: space-between; gap: 10px; border-bottom: 1px dashed var(--border); }
+        .tag { flex: 1; text-align: center; padding: 4px; border-radius: 6px; font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        
+        .tag-now { background: rgba(255, 102, 0, 0.15); color: #ff6600; border: 1px solid #ff6600; }
+        .tag-later { background: rgba(51, 181, 229, 0.15); color: #33b5e5; border: 1px solid rgba(51,181,229,0.3); }
+        .tag-new { background: rgba(0, 200, 81, 0.15); color: #00c851; border: 1px solid rgba(0,200,81,0.3); }
+        .tag-old { background: rgba(255, 68, 68, 0.15); color: #ff4444; border: 1px solid rgba(255,68,68,0.3); }
+
+        .updated-badge { background: var(--updated-color); color: white; font-size: 0.8rem; padding: 2px 8px; border-radius: 4px; font-weight: bold; margin-right: 5px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        .t-body { padding: 15px; flex-grow: 1; }
+        .items-ul { list-style: none; padding: 0; margin: 0; }
+        .item-li { padding: 8px 0; border-bottom: 1px solid #333; font-size: 1.1rem; font-weight: 700; line-height: 1.4; display: flex; align-items: flex-start; }
+        .item-li::before { content: "•"; color: var(--primary); margin-left: 8px; font-size: 1.2rem; }
+        .item-li:last-child { border-bottom: none; }
+
+        .t-notes { background: #332b00; border: 1px solid #665500; color: #ffdd44; padding: 10px; margin: 10px 15px; border-radius: 8px; font-size: 0.9rem; font-weight: bold; display: flex; align-items: flex-start; gap: 8px; }
+        .t-notes i { margin-top: 3px; }
+
+        .t-total { background: #2d2d2d; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+        .total-txt { color: #aaa; font-size: 0.9rem; }
+        .total-num { color: var(--primary); font-size: 1.3rem; font-weight: 900; }
+
+        .t-footer { padding: 15px; background: #161616; font-size: 0.9rem; color: #ccc; }
+        .info-line { display: flex; align-items: center; margin-bottom: 8px; gap: 8px; }
+        .info-line i { width: 20px; text-align: center; color: var(--primary); }
+        .info-line a { color: #33b5e5; text-decoration: none; font-weight: bold; }
+        .info-addr { margin-top: 8px; padding-top: 8px; border-top: 1px solid #333; color: #888; font-style: italic; font-size: 0.85rem; }
+
+        .call-btn { background-color: #00c851; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; text-decoration: none; margin-right: 10px; font-size: 0.9rem; transition: 0.2s; border: 1px solid #00c851; }
+        .call-btn:hover { background-color: #007e33; transform: scale(1.1); }
+
+        .t-actions { display: flex; gap: 10px; padding: 10px 15px; background: #222; border-top: 1px solid #333; }
+        .action-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-family: 'Cairo'; font-weight: bold; font-size: 0.9rem; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px; color: #fff;}
+        .btn-done { background: #00c851; } .btn-done:hover { background: #007e33; }
+        .btn-restore { background: #33b5e5; } .btn-restore:hover { background: #0099cc; }
+        .btn-delete { background: #ff4444; } .btn-delete:hover { background: #cc0000; }
+
+        .flash-card { animation: flashBorder 2s infinite; }
+        .updated-card { border-color: var(--updated-color); box-shadow: 0 0 15px rgba(170, 0, 255, 0.3); }
+
+        @keyframes flashBorder { 0% {border-color: var(--border);} 50% {border-color: #fff;} 100% {border-color: var(--border);} }
+        #loader { width: 100%; text-align: center; margin-top: 50px; color: #666; }
+    </style>
+</head>
+<body>
+
+    <div id="start-overlay">
+        <button class="start-btn" onclick="startSystem()">تشغيل النظام</button>
+        <p style="color:#666; margin-top:15px;">انقر لتفعيل التنبيهات الصوتية</p>
+    </div>
+
+    <header>
+        <div class="brand">
+            <img src="https://archive.org/download/20251202_20251202_1107/%D8%B3%D9%81%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D8%A7%D8%B1.jpg" alt="Logo">
+            <span>سفرة الدار | المطبخ</span>
+        </div>
+        <div class="system-info">
+            <div class="clock" id="clock">00:00</div>
+            <div class="status">● ONLINE</div>
+        </div>
+    </header>
+
+    <div class="tabs-container">
+        <div class="tab-btn active" onclick="switchTab('active')">
+            قيد التحضير <i class="fas fa-fire"></i>
+            <span class="tab-badge" id="count-active">0</span>
+        </div>
+        <div class="tab-btn" onclick="switchTab('completed')">
+            الطلبات المكتملة <i class="fas fa-check-circle"></i>
+            <span class="tab-badge" id="count-completed">0</span>
+        </div>
+    </div>
+
+    <div id="loader">جاري الاتصال بالسيرفر...</div>
+    
+    <div id="active-orders" class="tab-content active">
+        <div id="active-grid" class="grid-container"></div>
+    </div>
+
+    <div id="completed-orders" class="tab-content">
+        <div id="completed-grid" class="grid-container"></div>
+    </div>
+
+    <audio id="bell-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwk4uhpzz44XU3TPfbFLvAroKkMdo263si_g0SQegfhPLJrfdNM4Pbq69MxXXxjxxE/exec'; 
+
+        let systemStarted = false;
+        let lastOrderCount = 0;
+        let isFirstRun = true;
+        let currentTab = 'active';
+        let notifiedUpdatedIds = new Set(); // لتتبع الطلبات التي تم التنبيه عنها
+
+        function startSystem() {
+            document.getElementById('start-overlay').style.display = 'none';
+            systemStarted = true;
+            const audio = document.getElementById('bell-sound');
+            audio.volume = 0;
+            audio.play().then(() => {
+                audio.pause(); audio.currentTime = 0; audio.volume = 1.0;
+            }).catch(console.error);
+
+            fetchData();
+            setInterval(fetchData, 7000);
+            setInterval(() => {
+                document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-US', {hour12:false});
+            }, 1000);
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if(tab === 'active') {
+                document.querySelector('div[onclick="switchTab(\'active\')"]').classList.add('active');
+                document.getElementById('active-orders').classList.add('active');
+            } else {
+                document.querySelector('div[onclick="switchTab(\'completed\')"]').classList.add('active');
+                document.getElementById('completed-orders').classList.add('active');
+            }
+        }
+
+        async function fetchData() {
+            if(!systemStarted) return;
+            try {
+                const res = await fetch(`${API_URL}?t=${Date.now()}`);
+                const data = await res.json();
+                
+                document.getElementById('loader').style.display = 'none';
+                processOrders(data);
+
+            } catch (err) {
+                console.error("Connection Error");
+            }
+        }
+
+        function processOrders(orders) {
+            const activeGrid = document.getElementById('active-grid');
+            const completedGrid = document.getElementById('completed-grid');
+            
+            const activeOrders = orders.filter(o => o.status !== 'Completed');
+            const completedOrders = orders.filter(o => o.status === 'Completed');
+
+            document.getElementById('count-active').innerText = activeOrders.length;
+            document.getElementById('count-completed').innerText = completedOrders.length;
+
+            // 1. منطق التنبيه للطلبات الجديدة
+            if (!isFirstRun && activeOrders.length > lastOrderCount) {
+                playNotification();
+            }
+            lastOrderCount = activeOrders.length;
+
+            // 2. منطق التنبيه للطلبات المعدلة
+            let hasNewUpdates = false;
+            activeOrders.forEach(order => {
+                if (order.status === 'Updated') {
+                    if (!notifiedUpdatedIds.has(order.id)) {
+                        hasNewUpdates = true;
+                        notifiedUpdatedIds.add(order.id);
+                    }
+                }
+            });
+
+            if (hasNewUpdates && !isFirstRun) {
+                playNotification();
+                // إظهار توست للتنبيه بأن الصوت سببه تحديث
+                const Toast = Swal.mixin({
+                    toast: true, position: 'top-start', showConfirmButton: false, 
+                    timer: 3000, timerProgressBar: true,
+                    background: '#aa00ff', color: '#fff',
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    }
+                });
+                Toast.fire({ icon: 'info', title: 'تم تعديل طلب!' });
+            }
+
+            isFirstRun = false;
+
+            renderGrid(activeOrders, activeGrid, false);
+            renderGrid(completedOrders, completedGrid, true);
+        }
+
+        function renderGrid(orders, container, isCompleted) {
+            container.innerHTML = '';
+
+            if (orders.length === 0) {
+                container.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#444; margin-top:50px;">لا توجد طلبات هنا</div>';
+                return;
+            }
+
+            orders.forEach(order => {
+                const ticket = document.createElement('div');
+                
+                const orderDate = new Date(order.time);
+                const isRecent = !isCompleted && (new Date() - orderDate) < (5 * 60 * 1000);
+                const isUpdated = !isCompleted && order.status === 'Updated';
+                
+                let cardClass = 'ticket';
+                if(isCompleted) cardClass += ' completed-ticket';
+                else if(isUpdated) cardClass += ' updated-card';
+                else if(isRecent) cardClass += ' flash-card';
+                
+                ticket.className = cardClass;
+                ticket.id = `ticket-${order.id}`;
+
+                const itemsList = order.items ? order.items.split(' + ').map(i => `<li class="item-li">${i}</li>`).join('') : '';
+
+                let cxTag = order.type === 'New CX' ? `<span class="tag tag-new">New CX</span>` : `<span class="tag tag-old">Old CX</span>`;
+                
+                let timeTag = '';
+                if(order.pickupTime && order.pickupTime.includes('فوري')) {
+                    timeTag = `<span class="tag tag-now"><i class="fas fa-fire"></i> فوري</span>`;
+                } else {
+                    timeTag = `<span class="tag tag-later"><i class="fas fa-clock"></i> ${order.pickupTime}</span>`;
+                }
+
+                let updateBadgeHtml = '';
+                if(isUpdated) {
+                    updateBadgeHtml = `<span class="updated-badge">تم تحديث الطلب ✏️</span>`;
+                }
+
+                let locHtml = 'لا يوجد موقع';
+                if(order.location && order.location.length > 5) {
+                    let href = order.location.startsWith('http') ? order.location : `https://maps.google.com/?q=${order.location}`;
+                    locHtml = `<a href="${href}" target="_blank">فتح الخريطة <i class="fas fa-external-link-alt"></i></a>`;
+                }
+
+                let detailsHtml = '';
+                if(order.details) {
+                    detailsHtml = `<div class="info-addr"><i class="fas fa-map-marker-alt"></i> ${order.details}</div>`;
+                }
+
+                let notesHtml = '';
+                if(order.notes && order.notes.trim() !== "") {
+                    notesHtml = `<div class="t-notes"><i class="fas fa-exclamation-circle"></i> ${order.notes}</div>`;
+                }
+
+                let buttonsHtml = '';
+                if(!isCompleted) {
+                    buttonsHtml = `
+                        <button class="action-btn btn-done" onclick="markDone(${order.id})">
+                            <i class="fas fa-check-circle"></i> Done
+                        </button>
+                        <button class="action-btn btn-delete" onclick="deleteOrder(${order.id})">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>
+                    `;
+                } else {
+                    buttonsHtml = `
+                        <button class="action-btn btn-restore" onclick="restoreOrder(${order.id})">
+                            <i class="fas fa-undo"></i> Restore
+                        </button>
+                        <button class="action-btn btn-delete" onclick="deleteOrder(${order.id})">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>
+                    `;
+                }
+
+                ticket.innerHTML = `
+                    <div class="t-header">
+                        <div class="t-id">
+                            ${updateBadgeHtml}
+                            #${order.id}
+                        </div>
+                        <div class="t-time">${orderDate.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:false})}</div>
+                    </div>
+
+                    <div class="t-tags">
+                        ${timeTag}
+                        ${cxTag}
+                    </div>
+
+                    <div class="t-body">
+                        <ul class="items-ul">
+                            ${itemsList}
+                        </ul>
+                    </div>
+                    
+                    ${notesHtml}
+
+                    <div class="t-total">
+                        <span class="total-txt">المجموع الكلي</span>
+                        <span class="total-num">${order.total} KD</span>
+                    </div>
+
+                    <div class="t-footer">
+                        <div class="info-line">
+                            <i class="fas fa-phone"></i>
+                            <span dir="ltr">${order.phone}</span>
+                            <a href="tel:${order.phone}" class="call-btn" title="اتصال مباشر"><i class="fas fa-phone-alt"></i></a>
+                        </div>
+                        <div class="info-line">
+                            <i class="fas fa-location-arrow"></i>
+                            ${locHtml}
+                        </div>
+                        ${detailsHtml}
+                    </div>
+
+                    <div class="t-actions">
+                        ${buttonsHtml}
+                    </div>
+                `;
+
+                container.appendChild(ticket);
+            });
+        }
+
+        function markDone(id) {
+            document.getElementById(`ticket-${id}`).style.opacity = '0.5';
+            fetch(API_URL, {
+                method: 'POST', mode: 'no-cors',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=done&id=${id}`
+            }).then(() => fetchData());
+        }
+
+        function restoreOrder(id) {
+            document.getElementById(`ticket-${id}`).style.opacity = '0.5';
+            fetch(API_URL, {
+                method: 'POST', mode: 'no-cors',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `action=restore&id=${id}`
+            }).then(() => fetchData());
+        }
+
+        function deleteOrder(id) {
+            Swal.fire({
+                title: 'حذف نهائي؟',
+                text: "لا يمكن التراجع عن هذا الإجراء!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ff4444',
+                cancelButtonColor: '#555',
+                confirmButtonText: 'نعم، احذف',
+                cancelButtonText: 'تراجع',
+                background: '#222', color: '#fff'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById(`ticket-${id}`).style.display = 'none';
+                    fetch(API_URL, {
+                        method: 'POST', mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `action=delete&id=${id}`
+                    }).then(() => fetchData());
+                }
+            })
+        }
+
+        function playNotification() {
+            const audio = document.getElementById('bell-sound');
+            audio.play().catch(e => console.log("Sound blocked"));
+            document.body.style.backgroundColor = '#331100';
+            setTimeout(() => { document.body.style.backgroundColor = '#0f0f0f'; }, 300);
+        }
+    </script>
+</body>
+</html>
