@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سفرة الدار | Kitchen</title>
+    <title>سفرة الدار | المطبخ</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="apple-touch-icon" href="https://archive.org/download/20251202_20251202_1107/%D8%B3%D9%81%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D8%A7%D8%B1.jpg">
@@ -14,6 +14,8 @@
             --text-light: #ffffff; --text-gray: #aaaaaa; --border: #333333;
             --success: #00c851; --danger: #ff4444; --info: #33b5e5;
             --updated-color: #aa00ff;
+            --print-color: #0066cc;
+            --alert-color: #ff3300;
         }
         * { box-sizing: border-box; }
         body { background-color: var(--bg-dark); color: var(--text-light); font-family: 'Cairo', sans-serif; margin: 0; padding: 20px; }
@@ -79,6 +81,21 @@
         .info-line i { width: 20px; text-align: center; color: var(--primary); }
         .info-line a { color: #33b5e5; text-decoration: none; font-weight: bold; }
         .info-addr { margin-top: 8px; padding-top: 8px; border-top: 1px solid #333; color: #888; font-style: italic; font-size: 0.85rem; }
+        
+        /* ستايل طريقة الدفع الجديد */
+        .payment-method { 
+            background: rgba(255, 204, 0, 0.1); 
+            border: 1px solid #ffcc00; 
+            color: #ffcc00; 
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            margin: 8px 0; 
+            font-weight: bold; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px;
+            font-size: 1rem;
+        }
 
         .call-btn { background-color: #00c851; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; text-decoration: none; margin-right: 10px; font-size: 0.9rem; transition: 0.2s; border: 1px solid #00c851; }
         .call-btn:hover { background-color: #007e33; transform: scale(1.1); }
@@ -87,13 +104,366 @@
         .action-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-family: 'Cairo'; font-weight: bold; font-size: 0.9rem; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px; color: #fff;}
         .btn-done { background: #00c851; } .btn-done:hover { background: #007e33; }
         .btn-restore { background: #33b5e5; } .btn-restore:hover { background: #0099cc; }
-        .btn-delete { background: #ff4444; } .btn-delete:hover { background: #cc0000; }
+        .btn-print { background: var(--print-color); } .btn-print:hover { background: #004080; }
 
         .flash-card { animation: flashBorder 2s infinite; }
         .updated-card { border-color: var(--updated-color); box-shadow: 0 0 15px rgba(170, 0, 255, 0.3); }
 
         @keyframes flashBorder { 0% {border-color: var(--border);} 50% {border-color: #fff;} 100% {border-color: var(--border);} }
         #loader { width: 100%; text-align: center; margin-top: 50px; color: #666; }
+
+        /* نافذة التنبيهات المنبثقة */
+        #alert-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .alert-container {
+            background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+            border-radius: 15px;
+            padding: 25px;
+            width: 85%;
+            max-width: 450px;
+            border: 3px solid var(--alert-color);
+            box-shadow: 0 0 30px rgba(255, 51, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .alert-header {
+            text-align: center;
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--alert-color);
+            padding-bottom: 10px;
+        }
+
+        .alert-title {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--alert-color);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .alert-subtitle {
+            color: #ff9966;
+            font-size: 1rem;
+            margin-top: 8px;
+        }
+
+        .alert-order-id {
+            font-size: 3rem;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 0 15px var(--alert-color);
+            text-align: center;
+            margin: 15px 0;
+            animation: pulseGlow 1s infinite alternate;
+        }
+
+        @keyframes pulseGlow {
+            from { text-shadow: 0 0 15px var(--alert-color); }
+            to { text-shadow: 0 0 25px var(--alert-color); }
+        }
+
+        .alert-details {
+            background: rgba(255, 51, 0, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 1px solid rgba(255, 51, 0, 0.3);
+        }
+
+        .alert-detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.1);
+            font-size: 0.95rem;
+        }
+
+        .alert-detail-label {
+            color: #ff9966;
+            font-weight: bold;
+        }
+
+        .alert-detail-value {
+            color: white;
+            font-weight: bold;
+        }
+
+        .alert-timer-bar {
+            height: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .alert-timer-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--alert-color) 100%);
+            border-radius: 8px;
+            transition: width 0.1s linear;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .alert-timer-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+            line-height: 12px;
+            z-index: 2;
+        }
+
+        .alert-actions {
+            display: flex;
+            margin-top: 20px;
+        }
+
+        .alert-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Cairo';
+            font-weight: bold;
+            font-size: 1rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .alert-btn-received {
+            background: linear-gradient(135deg, #00c851 0%, #007e33 100%);
+            color: white;
+        }
+
+        .alert-btn-received:hover {
+            background: linear-gradient(135deg, #00e676 0%, #00b248 100%);
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(0, 200, 81, 0.5);
+        }
+
+        .alert-type-badge {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            padding: 6px 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+
+        .alert-type-new {
+            background: rgba(0, 200, 81, 0.2);
+            color: #00c851;
+            border: 1px solid #00c851;
+        }
+
+        .alert-type-updated {
+            background: rgba(170, 0, 255, 0.2);
+            color: #aa00ff;
+            border: 1px solid #aa00ff;
+        }
+
+        /* نافذة الطباعة */
+        #print-modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.95); 
+            z-index: 11000; 
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .print-container {
+            background: white;
+            max-width: 400px;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        
+        .print-content { 
+            color: black; 
+            font-family: 'Cairo', sans-serif;
+            direction: rtl;
+        }
+        
+        .print-header { 
+            text-align: center; 
+            border-bottom: 2px solid #ff6600; 
+            padding-bottom: 15px; 
+            margin-bottom: 20px; 
+        }
+        
+        .print-header h1 { 
+            margin: 0; 
+            color: #ff6600; 
+            font-size: 28px; 
+            font-weight: 900;
+        }
+        
+        .print-id { 
+            font-size: 32px; 
+            font-weight: 900; 
+            color: #000; 
+            margin: 10px 0; 
+        }
+        
+        .print-time { 
+            font-size: 16px; 
+            color: #666; 
+            margin: 5px 0; 
+        }
+        
+        .print-section { 
+            margin: 20px 0; 
+            padding: 10px 0;
+        }
+        
+        .print-label { 
+            font-weight: bold; 
+            color: #333; 
+            margin-bottom: 8px; 
+            font-size: 16px;
+            border-bottom: 1px dashed #ccc;
+            padding-bottom: 5px;
+        }
+        
+        .print-items { 
+            list-style: none; 
+            padding: 0; 
+            margin: 0; 
+        }
+        
+        .print-item { 
+            padding: 12px 0; 
+            border-bottom: 1px dashed #ddd; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .print-item-qty {
+            background: #ff6600;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .print-total { 
+            font-size: 24px; 
+            font-weight: 900; 
+            color: #000; 
+            text-align: center; 
+            margin-top: 25px; 
+            padding-top: 15px; 
+            border-top: 3px double #333; 
+        }
+        
+        .print-actions { 
+            text-align: center; 
+            margin-top: 30px; 
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+        
+        .close-print { 
+            background: #ff4444; 
+            color: white; 
+            border: none; 
+            padding: 12px 25px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-family: 'Cairo'; 
+            font-weight: bold;
+            font-size: 16px;
+            margin-left: 10px;
+        }
+        
+        .print-btn { 
+            background: #0066cc; 
+            color: white; 
+            border: none; 
+            padding: 12px 25px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-family: 'Cairo'; 
+            font-weight: bold; 
+            margin-right: 10px;
+            font-size: 16px;
+        }
+
+        @media print {
+            body * { 
+                visibility: hidden; 
+            }
+            .print-container, 
+            .print-container * { 
+                visibility: visible; 
+            }
+            .print-container { 
+                position: absolute;
+                left: 50%;
+                top: 0;
+                transform: translateX(-50%);
+                width: 80mm !important;
+                margin: 0 !important;
+                padding: 10mm !important;
+                box-shadow: none !important;
+                border: none !important;
+                background: white !important;
+            }
+            .print-actions { 
+                display: none !important; 
+            }
+            .print-header h1 {
+                font-size: 22px !important;
+            }
+            .print-id {
+                font-size: 26px !important;
+            }
+            .print-item {
+                font-size: 16px !important;
+                padding: 8px 0 !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -135,26 +505,146 @@
         <div id="completed-grid" class="grid-container"></div>
     </div>
 
-    <audio id="bell-sound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"></audio>
+    <!-- نافذة التنبيهات المنبثقة -->
+    <div id="alert-overlay">
+        <div class="alert-container">
+            <div id="alert-type-badge" class="alert-type-badge alert-type-new">طلب جديد</div>
+            <div class="alert-header">
+                <h1 class="alert-title">
+                    <i class="fas fa-bell"></i>
+                    تنبيه مهم
+                    <i class="fas fa-exclamation-triangle"></i>
+                </h1>
+                <div class="alert-subtitle" id="alert-subtitle">طلب جديد يحتاج إلى التحضير</div>
+            </div>
+            
+            <div class="alert-order-id" id="alert-order-id">#0000</div>
+            
+            <div class="alert-details">
+                <div class="alert-detail-item">
+                    <span class="alert-detail-label">نوع الطلب:</span>
+                    <span class="alert-detail-value" id="alert-order-type">New CX</span>
+                </div>
+                <div class="alert-detail-item">
+                    <span class="alert-detail-label">عدد الأصناف:</span>
+                    <span class="alert-detail-value" id="alert-items-count">0</span>
+                </div>
+                <div class="alert-detail-item">
+                    <span class="alert-detail-label">الإجمالي:</span>
+                    <span class="alert-detail-value" id="alert-total">0.000 KD</span>
+                </div>
+                <div class="alert-detail-item">
+                    <span class="alert-detail-label">الوقت:</span>
+                    <span class="alert-detail-value" id="alert-time">00:00:00</span>
+                </div>
+            </div>
+            
+            <div class="alert-timer-bar">
+                <div class="alert-timer-fill" id="alert-timer-fill"></div>
+                <div class="alert-timer-text" id="alert-timer-text">الدقيقة 0 من 2</div>
+            </div>
+            
+            <div class="alert-actions">
+                <button class="alert-btn alert-btn-received" onclick="handleAlertReceived()">
+                    <i class="fas fa-check-circle"></i> تم استلام الطلب
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة الطباعة -->
+    <div id="print-modal">
+        <div class="print-container">
+            <div class="print-content" id="print-content">
+                <!-- سيتم ملؤها بالجافاسكريبت -->
+            </div>
+            <div class="print-actions">
+                <button class="print-btn" onclick="window.print()">🖨️ طباعة الفاتورة</button>
+                <button class="close-print" onclick="closePrintModal()">✖ إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- استخدام الصوت الأصلي من الكود السابق -->
+    <audio id="alert-sound" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+    </audio>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbwk4uhpzz44XU3TPfbFLvAroKkMdo263si_g0SQegfhPLJrfdNM4Pbq69MxXXxjxxE/exec'; 
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyGYGtfPd1ynGGhxtEtI6frTHXM4ZtD18t9f6HNStPfzBHNgivBAmyUhJbtS6UMiD7S/exec'; 
 
         let systemStarted = false;
         let lastOrderCount = 0;
         let isFirstRun = true;
         let currentTab = 'active';
-        let notifiedUpdatedIds = new Set(); // لتتبع الطلبات التي تم التنبيه عنها
+        let notifiedOrderIds = new Set(); // لتتبع الطلبات التي تم التنبيه عنها
+        let currentAlertOrder = null;
+        let alertTimerInterval = null;
+        let soundInterval = null;
+        let alertStartTime = null;
+        const ALERT_DURATION = 120; // ثانيتين = 120 ثانية
+
+        // دالة لتحويل طريقة الدفع إلى نص عربي
+        function formatPaymentMethod(method) {
+            if (!method) return '';
+            
+            const methodMap = {
+                'cash': 'Cash',
+                'card': 'بطاقة ائتمان',
+                'knet': 'كي نت',
+                'visa': 'فيزا',
+                'mastercard': 'ماستركارد',
+                'credit': 'بطاقة ائتمان',
+                'credit card': 'بطاقة ائتمان',
+                'debit': 'بطاقة مدى',
+                'debit card': 'بطاقة مدى',
+                'online': 'دفع أونلاين',
+                'apple pay': 'آبل باي',
+                'google pay': 'جوجل باي',
+                'other': 'أخرى',
+                'أخرى': 'أخرى',
+                'نقدا': 'نقداً',
+                'نقداً': 'نقداً',
+                'كاش': 'نقداً'
+            };
+            
+            const lowerMethod = method.toLowerCase().trim();
+            return methodMap[lowerMethod] || method;
+        }
 
         function startSystem() {
             document.getElementById('start-overlay').style.display = 'none';
             systemStarted = true;
-            const audio = document.getElementById('bell-sound');
-            audio.volume = 0;
+            
+            // اختبار الصوت الأصلي
+            const audio = document.getElementById('alert-sound');
+            audio.volume = 0.1;
             audio.play().then(() => {
-                audio.pause(); audio.currentTime = 0; audio.volume = 1.0;
+                audio.pause();
+                audio.currentTime = 0;
+                audio.volume = 0.7;
             }).catch(console.error);
+
+            // تخطيط بيانات وهمية للاختبار
+            setTimeout(() => {
+                const testOrder = {
+                    id: 9999,
+                    type: 'New CX',
+                    items: 'مجبوس لحم (عربي) (x1) + مشوي جدر لحم (عربي) (x2)',
+                    total: '12.000',
+                    time: new Date().toISOString(),
+                    pickupTime: 'فوري',
+                    phone: '60000000',
+                    location: '',
+                    details: '',
+                    notes: '',
+                    paymentMethod: 'cash', // إضافة طريقة دفع للاختبار
+                    status: 'New'
+                };
+                showAlert(testOrder, 'new');
+                notifiedOrderIds.add(9999);
+            }, 1000);
 
             fetchData();
             setInterval(fetchData, 7000);
@@ -201,42 +691,181 @@
             document.getElementById('count-active').innerText = activeOrders.length;
             document.getElementById('count-completed').innerText = completedOrders.length;
 
-            // 1. منطق التنبيه للطلبات الجديدة
-            if (!isFirstRun && activeOrders.length > lastOrderCount) {
-                playNotification();
-            }
-            lastOrderCount = activeOrders.length;
-
-            // 2. منطق التنبيه للطلبات المعدلة
-            let hasNewUpdates = false;
+            // اكتشاف الطلبات الجديدة
             activeOrders.forEach(order => {
-                if (order.status === 'Updated') {
-                    if (!notifiedUpdatedIds.has(order.id)) {
-                        hasNewUpdates = true;
-                        notifiedUpdatedIds.add(order.id);
-                    }
+                if (!notifiedOrderIds.has(order.id)) {
+                    // هذا طلب جديد لم يتم التنبيه عنه بعد
+                    showAlert(order, 'new');
+                    notifiedOrderIds.add(order.id);
                 }
             });
 
-            if (hasNewUpdates && !isFirstRun) {
-                playNotification();
-                // إظهار توست للتنبيه بأن الصوت سببه تحديث
-                const Toast = Swal.mixin({
-                    toast: true, position: 'top-start', showConfirmButton: false, 
-                    timer: 3000, timerProgressBar: true,
-                    background: '#aa00ff', color: '#fff',
-                    didOpen: (toast) => {
-                        toast.addEventListener('mouseenter', Swal.stopTimer)
-                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+            // اكتشاف الطلبات المحدثة
+            activeOrders.forEach(order => {
+                if (order.status === 'Updated') {
+                    // إذا كان الطلب معدل ولم يتم التنبيه عنه بعد
+                    if (!notifiedOrderIds.has(`updated-${order.id}`)) {
+                        showAlert(order, 'updated');
+                        notifiedOrderIds.add(`updated-${order.id}`);
                     }
-                });
-                Toast.fire({ icon: 'info', title: 'تم تعديل طلب!' });
-            }
+                }
+            });
 
             isFirstRun = false;
 
             renderGrid(activeOrders, activeGrid, false);
             renderGrid(completedOrders, completedGrid, true);
+        }
+
+        function showAlert(order, type) {
+            // حفظ الطلب الحالي للتنبيه
+            currentAlertOrder = order;
+            alertStartTime = Date.now();
+            
+            // تعبئة البيانات في نافذة التنبيه
+            const orderDate = new Date(order.time);
+            const timeString = orderDate.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            
+            const itemsCount = order.items ? order.items.split(' + ').length : 0;
+            
+            document.getElementById('alert-order-id').textContent = `#${order.id}`;
+            document.getElementById('alert-order-type').textContent = order.type;
+            document.getElementById('alert-items-count').textContent = itemsCount;
+            document.getElementById('alert-total').textContent = `${order.total} KD`;
+            document.getElementById('alert-time').textContent = timeString;
+            
+            // تحديد نوع التنبيه
+            const typeBadge = document.getElementById('alert-type-badge');
+            const subtitle = document.getElementById('alert-subtitle');
+            
+            if (type === 'new') {
+                typeBadge.className = 'alert-type-badge alert-type-new';
+                typeBadge.textContent = 'طلب جديد';
+                subtitle.textContent = 'طلب جديد يحتاج إلى التحضير';
+            } else if (type === 'updated') {
+                typeBadge.className = 'alert-type-badge alert-type-updated';
+                typeBadge.textContent = 'طلب معدل';
+                subtitle.textContent = 'تم تعديل الطلب، يرجى المراجعة';
+            }
+            
+            // إظهار نافذة التنبيه
+            document.getElementById('alert-overlay').style.display = 'flex';
+            
+            // بدء مؤقت الشريط
+            startAlertTimer();
+            
+            // بدء التنبيه الصوتي المتكرر
+            startAlertSound();
+        }
+
+        function startAlertTimer() {
+            // إعادة تعيين المؤقت إذا كان يعمل بالفعل
+            if (alertTimerInterval) {
+                clearInterval(alertTimerInterval);
+            }
+            
+            // إعادة تعيين الشريط
+            document.getElementById('alert-timer-fill').style.width = '0%';
+            document.getElementById('alert-timer-text').textContent = 'الدقيقة 0 من 2';
+            
+            // بدء المؤقت
+            alertTimerInterval = setInterval(() => {
+                const elapsed = (Date.now() - alertStartTime) / 1000; // بالثواني
+                const percentage = Math.min((elapsed / ALERT_DURATION) * 100, 100);
+                
+                // تحديث شريط التحميل
+                document.getElementById('alert-timer-fill').style.width = `${percentage}%`;
+                
+                // تحديث النص
+                const minutes = Math.floor(elapsed / 60);
+                document.getElementById('alert-timer-text').textContent = `الدقيقة ${minutes} من 2`;
+                
+                // إذا انتهى الوقت (دقيقتين) نعيد الشريط
+                if (elapsed >= ALERT_DURATION) {
+                    alertStartTime = Date.now(); // إعادة البدء
+                    document.getElementById('alert-timer-fill').style.width = '0%';
+                }
+            }, 100); // تحديث كل 100 مللي ثانية
+        }
+
+        function startAlertSound() {
+            // إيقاف الصوت السابق إذا كان يعمل
+            if (soundInterval) {
+                clearInterval(soundInterval);
+            }
+            
+            const audio = document.getElementById('alert-sound');
+            audio.volume = 0.7;
+            
+            // تشغيل الصوت فوراً
+            audio.play().catch(e => console.log("Sound blocked initially"));
+            
+            // تشغيل الصوت كل 3 ثواني
+            soundInterval = setInterval(() => {
+                audio.currentTime = 0;
+                audio.play().catch(e => console.log("Sound blocked"));
+            }, 3000); // كل 3 ثواني
+        }
+
+        function stopAlertSound() {
+            if (soundInterval) {
+                clearInterval(soundInterval);
+                soundInterval = null;
+            }
+            
+            const audio = document.getElementById('alert-sound');
+            audio.pause();
+            audio.currentTime = 0;
+        }
+
+        function handleAlertReceived() {
+            if (currentAlertOrder) {
+                // إخفاء نافذة التنبيه
+                document.getElementById('alert-overlay').style.display = 'none';
+                
+                // إيقاف المؤقت والصوت
+                if (alertTimerInterval) {
+                    clearInterval(alertTimerInterval);
+                    alertTimerInterval = null;
+                }
+                stopAlertSound();
+                
+                // التبديل إلى تبويب الطلبات النشطة
+                switchTab('active');
+                
+                // تمرير للعنصر المعني بعد تأخير بسيط
+                setTimeout(() => {
+                    const ticketElement = document.getElementById(`ticket-${currentAlertOrder.id}`);
+                    if (ticketElement) {
+                        ticketElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        
+                        // إضافة تأثير وامض للفت الانتباه
+                        ticketElement.style.animation = 'flashBorder 1s infinite';
+                        setTimeout(() => {
+                            ticketElement.style.animation = '';
+                        }, 3000);
+                        
+                        // إظهار رسالة تأكيد صغيرة
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-start',
+                            icon: 'success',
+                            title: `تم استلام الطلب #${currentAlertOrder.id}`,
+                            showConfirmButton: false,
+                            timer: 2000,
+                            background: '#222',
+                            color: '#fff'
+                        });
+                    }
+                }, 500);
+                
+                currentAlertOrder = null;
+            }
         }
 
         function renderGrid(orders, container, isCompleted) {
@@ -294,14 +923,32 @@
                     notesHtml = `<div class="t-notes"><i class="fas fa-exclamation-circle"></i> ${order.notes}</div>`;
                 }
 
+                // عرض طريقة الدفع (للمطبخ والموظفين فقط على الشاشة)
+                let paymentHtml = '';
+                if(order.paymentMethod && order.paymentMethod.trim() !== "") {
+                    const paymentText = formatPaymentMethod(order.paymentMethod);
+                    paymentHtml = `<div class="payment-method">
+                        <i class="fas fa-credit-card"></i>
+                        <span>طريقة الدفع: ${paymentText}</span>
+                    </div>`;
+                }
+
+                // تنسيق الوقت مع إظهار الثواني
+                const formattedTime = orderDate.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                });
+
                 let buttonsHtml = '';
                 if(!isCompleted) {
                     buttonsHtml = `
                         <button class="action-btn btn-done" onclick="markDone(${order.id})">
                             <i class="fas fa-check-circle"></i> Done
                         </button>
-                        <button class="action-btn btn-delete" onclick="deleteOrder(${order.id})">
-                            <i class="fas fa-trash-alt"></i> Delete
+                        <button class="action-btn btn-print" onclick="printOrder(${order.id})">
+                            <i class="fas fa-print"></i> Print
                         </button>
                     `;
                 } else {
@@ -309,8 +956,8 @@
                         <button class="action-btn btn-restore" onclick="restoreOrder(${order.id})">
                             <i class="fas fa-undo"></i> Restore
                         </button>
-                        <button class="action-btn btn-delete" onclick="deleteOrder(${order.id})">
-                            <i class="fas fa-trash-alt"></i> Delete
+                        <button class="action-btn btn-print" onclick="printOrder(${order.id})">
+                            <i class="fas fa-print"></i> Print
                         </button>
                     `;
                 }
@@ -321,7 +968,7 @@
                             ${updateBadgeHtml}
                             #${order.id}
                         </div>
-                        <div class="t-time">${orderDate.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', hour12:false})}</div>
+                        <div class="t-time">${formattedTime}</div>
                     </div>
 
                     <div class="t-tags">
@@ -336,6 +983,8 @@
                     </div>
                     
                     ${notesHtml}
+                    
+                    ${paymentHtml}
 
                     <div class="t-total">
                         <span class="total-txt">المجموع الكلي</span>
@@ -370,7 +1019,19 @@
                 method: 'POST', mode: 'no-cors',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `action=done&id=${id}`
-            }).then(() => fetchData());
+            }).then(() => {
+                fetchData();
+                // إذا كان هذا هو الطلب الحالي في التنبيه، أخفِ التنبيه
+                if (currentAlertOrder && currentAlertOrder.id == id) {
+                    document.getElementById('alert-overlay').style.display = 'none';
+                    if (alertTimerInterval) {
+                        clearInterval(alertTimerInterval);
+                        alertTimerInterval = null;
+                    }
+                    stopAlertSound();
+                    currentAlertOrder = null;
+                }
+            });
         }
 
         function restoreOrder(id) {
@@ -382,34 +1043,101 @@
             }).then(() => fetchData());
         }
 
-        function deleteOrder(id) {
-            Swal.fire({
-                title: 'حذف نهائي؟',
-                text: "لا يمكن التراجع عن هذا الإجراء!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ff4444',
-                cancelButtonColor: '#555',
-                confirmButtonText: 'نعم، احذف',
-                cancelButtonText: 'تراجع',
-                background: '#222', color: '#fff'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById(`ticket-${id}`).style.display = 'none';
-                    fetch(API_URL, {
-                        method: 'POST', mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `action=delete&id=${id}`
-                    }).then(() => fetchData());
-                }
-            })
+        function printOrder(id) {
+            // إخفاء نافذة التنبيه إذا كانت مفتوحة
+            if (document.getElementById('alert-overlay').style.display === 'flex') {
+                document.getElementById('alert-overlay').style.display = 'none';
+                stopAlertSound();
+            }
+            
+            // البحث عن بيانات الطلب
+            fetch(API_URL)
+                .then(res => res.json())
+                .then(orders => {
+                    const order = orders.find(o => o.id == id);
+                    if (order) {
+                        openPrintModal(order);
+                    }
+                });
         }
 
-        function playNotification() {
-            const audio = document.getElementById('bell-sound');
-            audio.play().catch(e => console.log("Sound blocked"));
-            document.body.style.backgroundColor = '#331100';
-            setTimeout(() => { document.body.style.backgroundColor = '#0f0f0f'; }, 300);
+        function openPrintModal(order) {
+            const orderDate = new Date(order.time);
+            
+            // تنسيق الوقت الميلادي مع الثواني
+            const timeString = orderDate.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            
+            // التاريخ الميلادي بالصيغة المختصرة
+            const shortMiladiDate = orderDate.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            }).replace(/\//g, '-');
+
+            let itemsHtml = '';
+            if (order.items) {
+                const items = order.items.split(' + ');
+                items.forEach(item => {
+                    // استخراج الكمية من النص (x2)
+                    const match = item.match(/\(x(\d+)\)/);
+                    const qty = match ? match[1] : '1';
+                    const itemName = item.replace(/\(x\d+\)/, '').trim();
+                    
+                    itemsHtml += `
+                        <div class="print-item">
+                            <span>${itemName}</span>
+                            <span class="print-item-qty">${qty}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            // ملاحظة: لا تضف طريقة الدفع هنا - هذا ما طلبته
+            document.getElementById('print-content').innerHTML = `
+                <div class="print-header">
+                    <h1>سفرة الدار</h1>
+                    <div class="print-id">الطلب رقم: #${order.id}</div>
+                    <div class="print-time">${shortMiladiDate}</div>
+                    <div class="print-time">${timeString}</div>
+                </div>
+
+                <div class="print-section">
+                    <div class="print-label">الأصناف المطلوبة:</div>
+                    <div class="print-items">
+                        ${itemsHtml}
+                    </div>
+                </div>
+
+                <div class="print-section">
+                    <div class="print-total">الإجمالي: ${order.total} د.ك</div>
+                </div>
+
+                <div class="print-section" style="text-align: center; margin-top: 30px; font-size: 14px; color: #666;">
+                    شكراً لثقتكم بـ سفرة الدار
+                </div>
+            `;
+
+            document.getElementById('print-modal').style.display = 'block';
+            
+            // بعد عرض المحتوى، نركز على الزر للطباعة
+            setTimeout(() => {
+                const printBtn = document.querySelector('.print-btn');
+                if (printBtn) printBtn.focus();
+            }, 100);
+        }
+
+        function closePrintModal() {
+            document.getElementById('print-modal').style.display = 'none';
+            // إذا كان هناك تنبيه نشط، أعد عرضه
+            if (currentAlertOrder) {
+                document.getElementById('alert-overlay').style.display = 'flex';
+                startAlertSound();
+            }
         }
     </script>
 </body>
