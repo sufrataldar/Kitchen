@@ -16,6 +16,8 @@
             --updated-color: #aa00ff;
             --print-color: #0066cc;
             --alert-color: #ff3300;
+            --cancelled-color: #ff4444;
+            --customer-color: #33b5e5;
         }
         * { box-sizing: border-box; }
         body { background-color: var(--bg-dark); color: var(--text-light); font-family: 'Cairo', sans-serif; margin: 0; padding: 20px; }
@@ -82,11 +84,26 @@
         .info-line a { color: #33b5e5; text-decoration: none; font-weight: bold; }
         .info-addr { margin-top: 8px; padding-top: 8px; border-top: 1px solid #333; color: #888; font-style: italic; font-size: 0.85rem; }
         
-        /* ستايل طريقة الدفع الجديد */
+        /* ستايل طريقة الدفع */
         .payment-method { 
             background: rgba(255, 204, 0, 0.1); 
             border: 1px solid #ffcc00; 
             color: #ffcc00; 
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            margin: 8px 0; 
+            font-weight: bold; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px;
+            font-size: 1rem;
+        }
+        
+        /* ستايل معلومات العميل */
+        .customer-info { 
+            background: rgba(51, 181, 229, 0.1); 
+            border: 1px solid var(--customer-color); 
+            color: var(--customer-color); 
             padding: 8px 12px; 
             border-radius: 6px; 
             margin: 8px 0; 
@@ -268,6 +285,17 @@
             box-shadow: 0 0 15px rgba(0, 200, 81, 0.5);
         }
 
+        .alert-btn-cancelled {
+            background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
+            color: white;
+        }
+
+        .alert-btn-cancelled:hover {
+            background: linear-gradient(135deg, #ff6666 0%, #ff0000 100%);
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 68, 68, 0.5);
+        }
+
         .alert-type-badge {
             position: absolute;
             top: 15px;
@@ -288,6 +316,12 @@
             background: rgba(170, 0, 255, 0.2);
             color: #aa00ff;
             border: 1px solid #aa00ff;
+        }
+
+        .alert-type-cancelled {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            border: 1px solid #ff4444;
         }
 
         /* نافذة الطباعة */
@@ -430,6 +464,34 @@
             font-size: 16px;
         }
 
+        /* أنماط الطلبات المحذوفة */
+        .deleted-ticket {
+            animation: fadeOutDelete 0.5s forwards;
+            position: relative;
+        }
+
+        .deleted-ticket::after {
+            content: "تم حذف هذا الطلب";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 68, 68, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 10;
+            font-size: 1.2rem;
+            text-align: center;
+            width: 80%;
+        }
+
+        @keyframes fadeOutDelete {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0.3; transform: scale(0.95); filter: grayscale(1); }
+        }
+
         @media print {
             body * { 
                 visibility: hidden; 
@@ -462,6 +524,10 @@
             .print-item {
                 font-size: 16px !important;
                 padding: 8px 0 !important;
+            }
+            /* إخفاء رقم العميل عند الطباعة */
+            .customer-number {
+                display: none !important;
             }
         }
     </style>
@@ -545,7 +611,7 @@
             </div>
             
             <div class="alert-actions">
-                <button class="alert-btn alert-btn-received" onclick="handleAlertReceived()">
+                <button class="alert-btn" id="alert-action-btn" onclick="handleAlertReceived()">
                     <i class="fas fa-check-circle"></i> تم استلام الطلب
                 </button>
             </div>
@@ -565,27 +631,35 @@
         </div>
     </div>
 
-    <!-- استخدام الصوت الأصلي من الكود السابق -->
-    <audio id="alert-sound" preload="auto">
+    <!-- عناصر الصوت المختلفة -->
+    <audio id="alert-sound-new" preload="auto">
         <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="alert-sound-updated" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2864/2864-preview.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="alert-sound-cancelled" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/954/954-preview.mp3" type="audio/mpeg">
     </audio>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyGYGtfPd1ynGGhxtEtI6frTHXM4ZtD18t9f6HNStPfzBHNgivBAmyUhJbtS6UMiD7S/exec'; 
+        const API_URL = 'https://script.google.com/macros/s/AKfycbw5sY1ZMub1RgQ_c_bIJSNEUOi_z5T-rcI8Hi_-nTSsD9KFvbihvdmxexh0atq77OkJ/exec'; 
 
         let systemStarted = false;
         let lastOrderCount = 0;
         let isFirstRun = true;
         let currentTab = 'active';
-        let notifiedOrderIds = new Set(); // لتتبع الطلبات التي تم التنبيه عنها
+        let notifiedOrderIds = new Set();
+        let deletedOrderIds = new Set();
         let currentAlertOrder = null;
         let alertTimerInterval = null;
         let soundInterval = null;
         let alertStartTime = null;
-        const ALERT_DURATION = 120; // ثانيتين = 120 ثانية
+        const ALERT_DURATION = 120;
 
-        // دالة لتحويل طريقة الدفع إلى نص عربي
         function formatPaymentMethod(method) {
             if (!method) return '';
             
@@ -617,34 +691,25 @@
             document.getElementById('start-overlay').style.display = 'none';
             systemStarted = true;
             
-            // اختبار الصوت الأصلي
-            const audio = document.getElementById('alert-sound');
-            audio.volume = 0.1;
-            audio.play().then(() => {
-                audio.pause();
-                audio.currentTime = 0;
-                audio.volume = 0.7;
-            }).catch(console.error);
-
-            // تخطيط بيانات وهمية للاختبار
-            setTimeout(() => {
-                const testOrder = {
-                    id: 9999,
-                    type: 'New CX',
-                    items: 'مجبوس لحم (عربي) (x1) + مشوي جدر لحم (عربي) (x2)',
-                    total: '12.000',
-                    time: new Date().toISOString(),
-                    pickupTime: 'فوري',
-                    phone: '60000000',
-                    location: '',
-                    details: '',
-                    notes: '',
-                    paymentMethod: 'cash', // إضافة طريقة دفع للاختبار
-                    status: 'New'
-                };
-                showAlert(testOrder, 'new');
-                notifiedOrderIds.add(9999);
-            }, 1000);
+            // تشغيل وإيقاف جميع الأصوات لتهيئتها
+            const newSound = document.getElementById('alert-sound-new');
+            const updatedSound = document.getElementById('alert-sound-updated');
+            const cancelledSound = document.getElementById('alert-sound-cancelled');
+            
+            // ضبط مستوى الصوت
+            newSound.volume = 0.1;
+            updatedSound.volume = 0.1;
+            cancelledSound.volume = 0.1;
+            
+            // تهيئة جميع الأصوات
+            const sounds = [newSound, updatedSound, cancelledSound];
+            sounds.forEach(sound => {
+                sound.play().then(() => {
+                    sound.pause();
+                    sound.currentTime = 0;
+                    sound.volume = 0.7;
+                }).catch(console.error);
+            });
 
             fetchData();
             setInterval(fetchData, 7000);
@@ -685,25 +750,57 @@
             const activeGrid = document.getElementById('active-grid');
             const completedGrid = document.getElementById('completed-grid');
             
-            const activeOrders = orders.filter(o => o.status !== 'Completed');
-            const completedOrders = orders.filter(o => o.status === 'Completed');
+            const filteredOrders = orders.filter(order => {
+                if (deletedOrderIds.has(order.id)) {
+                    const ticketElement = document.getElementById(`ticket-${order.id}`);
+                    if (ticketElement) {
+                        ticketElement.remove();
+                    }
+                    return false;
+                }
+                return true;
+            });
+            
+            const activeOrders = filteredOrders.filter(o => o.status !== 'Completed');
+            const completedOrders = filteredOrders.filter(o => o.status === 'Completed');
 
             document.getElementById('count-active').innerText = activeOrders.length;
             document.getElementById('count-completed').innerText = completedOrders.length;
 
-            // اكتشاف الطلبات الجديدة
+            const currentOrderIds = new Set(orders.map(o => o.id));
+            
+            for (const orderId of notifiedOrderIds) {
+                if (!currentOrderIds.has(orderId) && !deletedOrderIds.has(orderId)) {
+                    const deletedOrder = {
+                        id: orderId,
+                        type: 'Unknown',
+                        items: 'تم حذف الطلب',
+                        total: '0.000',
+                        time: new Date().toISOString(),
+                        pickupTime: 'فوري',
+                        phone: '',
+                        location: '',
+                        details: '',
+                        notes: 'تم حذف هذا الطلب من قبل الإدارة',
+                        paymentMethod: '',
+                        status: 'Deleted'
+                    };
+                    
+                    showDeleteAlert(deletedOrder);
+                    deletedOrderIds.add(orderId);
+                    notifiedOrderIds.delete(orderId);
+                }
+            }
+
             activeOrders.forEach(order => {
                 if (!notifiedOrderIds.has(order.id)) {
-                    // هذا طلب جديد لم يتم التنبيه عنه بعد
                     showAlert(order, 'new');
                     notifiedOrderIds.add(order.id);
                 }
             });
 
-            // اكتشاف الطلبات المحدثة
             activeOrders.forEach(order => {
                 if (order.status === 'Updated') {
-                    // إذا كان الطلب معدل ولم يتم التنبيه عنه بعد
                     if (!notifiedOrderIds.has(`updated-${order.id}`)) {
                         showAlert(order, 'updated');
                         notifiedOrderIds.add(`updated-${order.id}`);
@@ -718,11 +815,9 @@
         }
 
         function showAlert(order, type) {
-            // حفظ الطلب الحالي للتنبيه
             currentAlertOrder = order;
             alertStartTime = Date.now();
             
-            // تعبئة البيانات في نافذة التنبيه
             const orderDate = new Date(order.time);
             const timeString = orderDate.toLocaleTimeString('en-US', {
                 hour: '2-digit',
@@ -739,77 +834,118 @@
             document.getElementById('alert-total').textContent = `${order.total} KD`;
             document.getElementById('alert-time').textContent = timeString;
             
-            // تحديد نوع التنبيه
             const typeBadge = document.getElementById('alert-type-badge');
             const subtitle = document.getElementById('alert-subtitle');
+            const actionBtn = document.getElementById('alert-action-btn');
             
             if (type === 'new') {
                 typeBadge.className = 'alert-type-badge alert-type-new';
                 typeBadge.textContent = 'طلب جديد';
                 subtitle.textContent = 'طلب جديد يحتاج إلى التحضير';
+                actionBtn.innerHTML = '<i class="fas fa-check-circle"></i> تم استلام الطلب';
+                actionBtn.className = 'alert-btn alert-btn-received';
+                startAlertSound('new');
             } else if (type === 'updated') {
                 typeBadge.className = 'alert-type-badge alert-type-updated';
                 typeBadge.textContent = 'طلب معدل';
                 subtitle.textContent = 'تم تعديل الطلب، يرجى المراجعة';
+                actionBtn.innerHTML = '<i class="fas fa-check-circle"></i> تم استلام الطلب';
+                actionBtn.className = 'alert-btn alert-btn-received';
+                startAlertSound('updated');
             }
             
-            // إظهار نافذة التنبيه
+            document.getElementById('alert-overlay').style.display = 'flex';
+            startAlertTimer();
+        }
+
+        function showDeleteAlert(order) {
+            currentAlertOrder = order;
+            alertStartTime = Date.now();
+            
+            const orderDate = new Date(order.time);
+            const timeString = orderDate.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            
+            const itemsCount = order.items ? order.items.split(' + ').length : 0;
+            
+            document.getElementById('alert-order-id').textContent = `#${order.id}`;
+            document.getElementById('alert-order-type').textContent = order.type;
+            document.getElementById('alert-items-count').textContent = itemsCount;
+            document.getElementById('alert-total').textContent = `${order.total} KD`;
+            document.getElementById('alert-time').textContent = timeString;
+            
+            const typeBadge = document.getElementById('alert-type-badge');
+            const subtitle = document.getElementById('alert-subtitle');
+            const actionBtn = document.getElementById('alert-action-btn');
+            
+            typeBadge.className = 'alert-type-badge alert-type-cancelled';
+            typeBadge.textContent = 'طلب ملغي';
+            subtitle.textContent = 'تم إلغاء هذا الطلب من قبل الإدارة';
+            actionBtn.innerHTML = '<i class="fas fa-check"></i> تأكيد الإلغاء';
+            actionBtn.className = 'alert-btn alert-btn-cancelled';
+            
             document.getElementById('alert-overlay').style.display = 'flex';
             
-            // بدء مؤقت الشريط
             startAlertTimer();
-            
-            // بدء التنبيه الصوتي المتكرر
-            startAlertSound();
+            startAlertSound('cancelled');
         }
 
         function startAlertTimer() {
-            // إعادة تعيين المؤقت إذا كان يعمل بالفعل
             if (alertTimerInterval) {
                 clearInterval(alertTimerInterval);
             }
             
-            // إعادة تعيين الشريط
             document.getElementById('alert-timer-fill').style.width = '0%';
             document.getElementById('alert-timer-text').textContent = 'الدقيقة 0 من 2';
             
-            // بدء المؤقت
             alertTimerInterval = setInterval(() => {
-                const elapsed = (Date.now() - alertStartTime) / 1000; // بالثواني
+                const elapsed = (Date.now() - alertStartTime) / 1000;
                 const percentage = Math.min((elapsed / ALERT_DURATION) * 100, 100);
                 
-                // تحديث شريط التحميل
                 document.getElementById('alert-timer-fill').style.width = `${percentage}%`;
                 
-                // تحديث النص
                 const minutes = Math.floor(elapsed / 60);
                 document.getElementById('alert-timer-text').textContent = `الدقيقة ${minutes} من 2`;
                 
-                // إذا انتهى الوقت (دقيقتين) نعيد الشريط
                 if (elapsed >= ALERT_DURATION) {
-                    alertStartTime = Date.now(); // إعادة البدء
+                    alertStartTime = Date.now();
                     document.getElementById('alert-timer-fill').style.width = '0%';
                 }
-            }, 100); // تحديث كل 100 مللي ثانية
+            }, 100);
         }
 
-        function startAlertSound() {
-            // إيقاف الصوت السابق إذا كان يعمل
+        function startAlertSound(type) {
             if (soundInterval) {
                 clearInterval(soundInterval);
             }
             
-            const audio = document.getElementById('alert-sound');
-            audio.volume = 0.7;
+            let audio;
+            switch(type) {
+                case 'new':
+                    audio = document.getElementById('alert-sound-new');
+                    break;
+                case 'updated':
+                    audio = document.getElementById('alert-sound-updated');
+                    break;
+                case 'cancelled':
+                    audio = document.getElementById('alert-sound-cancelled');
+                    break;
+                default:
+                    audio = document.getElementById('alert-sound-new');
+            }
             
-            // تشغيل الصوت فوراً
+            audio.volume = 0.7;
+            audio.currentTime = 0;
             audio.play().catch(e => console.log("Sound blocked initially"));
             
-            // تشغيل الصوت كل 3 ثواني
             soundInterval = setInterval(() => {
                 audio.currentTime = 0;
                 audio.play().catch(e => console.log("Sound blocked"));
-            }, 3000); // كل 3 ثواني
+            }, 3000);
         }
 
         function stopAlertSound() {
@@ -818,51 +954,98 @@
                 soundInterval = null;
             }
             
-            const audio = document.getElementById('alert-sound');
-            audio.pause();
-            audio.currentTime = 0;
+            const sounds = [
+                document.getElementById('alert-sound-new'),
+                document.getElementById('alert-sound-updated'),
+                document.getElementById('alert-sound-cancelled')
+            ];
+            
+            sounds.forEach(sound => {
+                sound.pause();
+                sound.currentTime = 0;
+            });
         }
 
         function handleAlertReceived() {
             if (currentAlertOrder) {
-                // إخفاء نافذة التنبيه
+                const typeBadge = document.getElementById('alert-type-badge');
+                
+                if (typeBadge.classList.contains('alert-type-cancelled')) {
+                    handleDeleteAcknowledged();
+                } else {
+                    document.getElementById('alert-overlay').style.display = 'none';
+                    
+                    if (alertTimerInterval) {
+                        clearInterval(alertTimerInterval);
+                        alertTimerInterval = null;
+                    }
+                    stopAlertSound();
+                    
+                    switchTab('active');
+                    
+                    setTimeout(() => {
+                        const ticketElement = document.getElementById(`ticket-${currentAlertOrder.id}`);
+                        if (ticketElement) {
+                            ticketElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            
+                            ticketElement.style.animation = 'flashBorder 1s infinite';
+                            setTimeout(() => {
+                                ticketElement.style.animation = '';
+                            }, 3000);
+                            
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-start',
+                                icon: 'success',
+                                title: `تم استلام الطلب #${currentAlertOrder.id}`,
+                                showConfirmButton: false,
+                                timer: 2000,
+                                background: '#222',
+                                color: '#fff'
+                            });
+                        }
+                    }, 500);
+                    
+                    currentAlertOrder = null;
+                }
+            }
+        }
+
+        function handleDeleteAcknowledged() {
+            if (currentAlertOrder) {
                 document.getElementById('alert-overlay').style.display = 'none';
                 
-                // إيقاف المؤقت والصوت
                 if (alertTimerInterval) {
                     clearInterval(alertTimerInterval);
                     alertTimerInterval = null;
                 }
                 stopAlertSound();
                 
-                // التبديل إلى تبويب الطلبات النشطة
-                switchTab('active');
+                deletedOrderIds.add(currentAlertOrder.id);
                 
-                // تمرير للعنصر المعني بعد تأخير بسيط
-                setTimeout(() => {
-                    const ticketElement = document.getElementById(`ticket-${currentAlertOrder.id}`);
-                    if (ticketElement) {
-                        ticketElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                const ticketElement = document.getElementById(`ticket-${currentAlertOrder.id}`);
+                if (ticketElement) {
+                    ticketElement.classList.add('deleted-ticket');
+                    
+                    setTimeout(() => {
+                        ticketElement.remove();
                         
-                        // إضافة تأثير وامض للفت الانتباه
-                        ticketElement.style.animation = 'flashBorder 1s infinite';
-                        setTimeout(() => {
-                            ticketElement.style.animation = '';
-                        }, 3000);
-                        
-                        // إظهار رسالة تأكيد صغيرة
-                        Swal.fire({
-                            toast: true,
-                            position: 'top-start',
-                            icon: 'success',
-                            title: `تم استلام الطلب #${currentAlertOrder.id}`,
-                            showConfirmButton: false,
-                            timer: 2000,
-                            background: '#222',
-                            color: '#fff'
-                        });
-                    }
-                }, 500);
+                        const activeGrid = document.getElementById('active-grid');
+                        const activeOrders = Array.from(activeGrid.children).filter(el => !el.classList.contains('completed-ticket'));
+                        document.getElementById('count-active').innerText = activeOrders.length;
+                    }, 3000);
+                }
+                
+                Swal.fire({
+                    toast: true,
+                    position: 'top-start',
+                    icon: 'info',
+                    title: `تم تسجيل إلغاء الطلب #${currentAlertOrder.id}`,
+                    showConfirmButton: false,
+                    timer: 3000,
+                    background: '#222',
+                    color: '#fff'
+                });
                 
                 currentAlertOrder = null;
             }
@@ -923,7 +1106,6 @@
                     notesHtml = `<div class="t-notes"><i class="fas fa-exclamation-circle"></i> ${order.notes}</div>`;
                 }
 
-                // عرض طريقة الدفع (للمطبخ والموظفين فقط على الشاشة)
                 let paymentHtml = '';
                 if(order.paymentMethod && order.paymentMethod.trim() !== "") {
                     const paymentText = formatPaymentMethod(order.paymentMethod);
@@ -932,8 +1114,16 @@
                         <span>طريقة الدفع: ${paymentText}</span>
                     </div>`;
                 }
+                
+                // إضافة معلومات العميل إذا كان موجوداً
+                let customerInfoHtml = '';
+                if(order.customerId && order.customerId.trim() !== "") {
+                    customerInfoHtml = `<div class="customer-info">
+                        <i class="fas fa-id-card"></i>
+                        <span>رقم العميل: ${order.customerId}</span>
+                    </div>`;
+                }
 
-                // تنسيق الوقت مع إظهار الثواني
                 const formattedTime = orderDate.toLocaleTimeString('en-US', {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -985,6 +1175,7 @@
                     ${notesHtml}
                     
                     ${paymentHtml}
+                    ${customerInfoHtml}
 
                     <div class="t-total">
                         <span class="total-txt">المجموع الكلي</span>
@@ -1021,7 +1212,6 @@
                 body: `action=done&id=${id}`
             }).then(() => {
                 fetchData();
-                // إذا كان هذا هو الطلب الحالي في التنبيه، أخفِ التنبيه
                 if (currentAlertOrder && currentAlertOrder.id == id) {
                     document.getElementById('alert-overlay').style.display = 'none';
                     if (alertTimerInterval) {
@@ -1044,13 +1234,11 @@
         }
 
         function printOrder(id) {
-            // إخفاء نافذة التنبيه إذا كانت مفتوحة
             if (document.getElementById('alert-overlay').style.display === 'flex') {
                 document.getElementById('alert-overlay').style.display = 'none';
                 stopAlertSound();
             }
             
-            // البحث عن بيانات الطلب
             fetch(API_URL)
                 .then(res => res.json())
                 .then(orders => {
@@ -1064,7 +1252,6 @@
         function openPrintModal(order) {
             const orderDate = new Date(order.time);
             
-            // تنسيق الوقت الميلادي مع الثواني
             const timeString = orderDate.toLocaleTimeString('en-US', {
                 hour: '2-digit',
                 minute: '2-digit',
@@ -1072,7 +1259,6 @@
                 hour12: false
             });
             
-            // التاريخ الميلادي بالصيغة المختصرة
             const shortMiladiDate = orderDate.toLocaleDateString('en-GB', {
                 day: '2-digit',
                 month: '2-digit',
@@ -1083,7 +1269,6 @@
             if (order.items) {
                 const items = order.items.split(' + ');
                 items.forEach(item => {
-                    // استخراج الكمية من النص (x2)
                     const match = item.match(/\(x(\d+)\)/);
                     const qty = match ? match[1] : '1';
                     const itemName = item.replace(/\(x\d+\)/, '').trim();
@@ -1097,13 +1282,14 @@
                 });
             }
 
-            // ملاحظة: لا تضف طريقة الدفع هنا - هذا ما طلبته
+            // تعديل: إزالة رقم العميل من الفاتورة المطبوعة
             document.getElementById('print-content').innerHTML = `
                 <div class="print-header">
                     <h1>سفرة الدار</h1>
                     <div class="print-id">الطلب رقم: #${order.id}</div>
                     <div class="print-time">${shortMiladiDate}</div>
                     <div class="print-time">${timeString}</div>
+                    <!-- تم إزالة سطر رقم العميل من هنا -->
                 </div>
 
                 <div class="print-section">
@@ -1124,7 +1310,6 @@
 
             document.getElementById('print-modal').style.display = 'block';
             
-            // بعد عرض المحتوى، نركز على الزر للطباعة
             setTimeout(() => {
                 const printBtn = document.querySelector('.print-btn');
                 if (printBtn) printBtn.focus();
@@ -1133,10 +1318,9 @@
 
         function closePrintModal() {
             document.getElementById('print-modal').style.display = 'none';
-            // إذا كان هناك تنبيه نشط، أعد عرضه
             if (currentAlertOrder) {
                 document.getElementById('alert-overlay').style.display = 'flex';
-                startAlertSound();
+                startAlertSound(currentAlertOrder.status === 'Updated' ? 'updated' : 'new');
             }
         }
     </script>
