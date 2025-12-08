@@ -71,8 +71,59 @@
         .item-li::before { content: "•"; color: var(--primary); margin-left: 8px; font-size: 1.2rem; }
         .item-li:last-child { border-bottom: none; }
 
-        .t-notes { background: #332b00; border: 1px solid #665500; color: #ffdd44; padding: 10px; margin: 10px 15px; border-radius: 8px; font-size: 0.9rem; font-weight: bold; display: flex; align-items: flex-start; gap: 8px; }
-        .t-notes i { margin-top: 3px; }
+        /* نظام الملاحظات الجديد */
+        .t-notes-container {
+            background: #332b00;
+            border: 1px solid #665500;
+            border-radius: 8px;
+            margin: 10px 15px;
+            overflow: hidden;
+        }
+        
+        .notes-header {
+            background: #443300;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffdd44;
+            font-weight: bold;
+            border-bottom: 1px solid #665500;
+        }
+        
+        .notes-list {
+            list-style: none;
+            padding: 10px;
+            margin: 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .note-item {
+            padding: 8px 0;
+            color: #ffdd44;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            display: flex;
+            align-items: flex-start;
+            border-bottom: 1px dashed rgba(255, 221, 68, 0.2);
+        }
+        
+        .note-item:last-child {
+            border-bottom: none;
+        }
+        
+        .note-item::before {
+            content: "•";
+            color: #ffaa00;
+            font-size: 1.2rem;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+        
+        .note-text {
+            flex: 1;
+        }
 
         .t-total { background: #2d2d2d; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
         .total-txt { color: #aaa; font-size: 0.9rem; }
@@ -84,7 +135,6 @@
         .info-line a { color: #33b5e5; text-decoration: none; font-weight: bold; }
         .info-addr { margin-top: 8px; padding-top: 8px; border-top: 1px solid #333; color: #888; font-style: italic; font-size: 0.85rem; }
         
-        /* ستايل طريقة الدفع */
         .payment-method { 
             background: rgba(255, 204, 0, 0.1); 
             border: 1px solid #ffcc00; 
@@ -99,7 +149,6 @@
             font-size: 1rem;
         }
         
-        /* ستايل معلومات العميل */
         .customer-info { 
             background: rgba(51, 181, 229, 0.1); 
             border: 1px solid var(--customer-color); 
@@ -129,7 +178,6 @@
         @keyframes flashBorder { 0% {border-color: var(--border);} 50% {border-color: #fff;} 100% {border-color: var(--border);} }
         #loader { width: 100%; text-align: center; margin-top: 50px; color: #666; }
 
-        /* نافذة التنبيهات المنبثقة */
         #alert-overlay {
             position: fixed;
             top: 0;
@@ -324,7 +372,6 @@
             border: 1px solid #ff4444;
         }
 
-        /* نافذة الطباعة */
         #print-modal { 
             display: none; 
             position: fixed; 
@@ -464,7 +511,6 @@
             font-size: 16px;
         }
 
-        /* أنماط الطلبات المحذوفة */
         .deleted-ticket {
             animation: fadeOutDelete 0.5s forwards;
             position: relative;
@@ -525,7 +571,6 @@
                 font-size: 16px !important;
                 padding: 8px 0 !important;
             }
-            /* إخفاء رقم العميل عند الطباعة */
             .customer-number {
                 display: none !important;
             }
@@ -571,7 +616,6 @@
         <div id="completed-grid" class="grid-container"></div>
     </div>
 
-    <!-- نافذة التنبيهات المنبثقة -->
     <div id="alert-overlay">
         <div class="alert-container">
             <div id="alert-type-badge" class="alert-type-badge alert-type-new">طلب جديد</div>
@@ -618,7 +662,6 @@
         </div>
     </div>
 
-    <!-- نافذة الطباعة -->
     <div id="print-modal">
         <div class="print-container">
             <div class="print-content" id="print-content">
@@ -631,7 +674,6 @@
         </div>
     </div>
 
-    <!-- عناصر الصوت المختلفة -->
     <audio id="alert-sound-new" preload="auto">
         <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
     </audio>
@@ -646,7 +688,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbw5sY1ZMub1RgQ_c_bIJSNEUOi_z5T-rcI8Hi_-nTSsD9KFvbihvdmxexh0atq77OkJ/exec'; 
+        const API_URL = 'https://script.google.com/macros/s/AKfycbyODqeHSPLtkn_Q-uPqawQxnw1oi3XCx-Sn-s-J8uxxy5qjBdHUmuSLEGCpuln51Vcq/exec'; 
 
         let systemStarted = false;
         let lastOrderCount = 0;
@@ -691,17 +733,14 @@
             document.getElementById('start-overlay').style.display = 'none';
             systemStarted = true;
             
-            // تشغيل وإيقاف جميع الأصوات لتهيئتها
             const newSound = document.getElementById('alert-sound-new');
             const updatedSound = document.getElementById('alert-sound-updated');
             const cancelledSound = document.getElementById('alert-sound-cancelled');
             
-            // ضبط مستوى الصوت
             newSound.volume = 0.1;
             updatedSound.volume = 0.1;
             cancelledSound.volume = 0.1;
             
-            // تهيئة جميع الأصوات
             const sounds = [newSound, updatedSound, cancelledSound];
             sounds.forEach(sound => {
                 sound.play().then(() => {
@@ -812,6 +851,31 @@
 
             renderGrid(activeOrders, activeGrid, false);
             renderGrid(completedOrders, completedGrid, true);
+        }
+
+        async function logNotification(orderId, status) {
+            try {
+                const params = new URLSearchParams();
+                params.append('action', 'logNotification');
+                params.append('orderId', orderId);
+                params.append('status', status);
+                params.append('timestamp', Date.now());
+                params.append('kitchenReceived', 'true');
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params
+                });
+                
+                const result = await response.json();
+                
+                console.log(`تم تسجيل إشعار للطلب #${orderId} - الحالة: ${status}`, result);
+                return result;
+            } catch (error) {
+                console.error('خطأ في تسجيل الإشعار:', error);
+                throw error;
+            }
         }
 
         function showAlert(order, type) {
@@ -966,12 +1030,12 @@
             });
         }
 
-        function handleAlertReceived() {
+        async function handleAlertReceived() {
             if (currentAlertOrder) {
                 const typeBadge = document.getElementById('alert-type-badge');
                 
                 if (typeBadge.classList.contains('alert-type-cancelled')) {
-                    handleDeleteAcknowledged();
+                    await handleDeleteAcknowledged();
                 } else {
                     document.getElementById('alert-overlay').style.display = 'none';
                     
@@ -980,6 +1044,14 @@
                         alertTimerInterval = null;
                     }
                     stopAlertSound();
+                    
+                    const notificationStatus = typeBadge.classList.contains('alert-type-updated') ? 'Updated' : 'New';
+                    try {
+                        await logNotification(currentAlertOrder.id, notificationStatus);
+                        console.log(`تم تسجيل إشعار للطلب #${currentAlertOrder.id} بنجاح`);
+                    } catch (error) {
+                        console.error('فشل في تسجيل الإشعار:', error);
+                    }
                     
                     switchTab('active');
                     
@@ -1011,7 +1083,7 @@
             }
         }
 
-        function handleDeleteAcknowledged() {
+        async function handleDeleteAcknowledged() {
             if (currentAlertOrder) {
                 document.getElementById('alert-overlay').style.display = 'none';
                 
@@ -1020,6 +1092,13 @@
                     alertTimerInterval = null;
                 }
                 stopAlertSound();
+                
+                try {
+                    await logNotification(currentAlertOrder.id, 'Cancelled');
+                    console.log(`تم تسجيل إشعار الإلغاء للطلب #${currentAlertOrder.id} بنجاح`);
+                } catch (error) {
+                    console.error('فشل في تسجيل إشعار الإلغاء:', error);
+                }
                 
                 deletedOrderIds.add(currentAlertOrder.id);
                 
@@ -1101,9 +1180,50 @@
                     detailsHtml = `<div class="info-addr"><i class="fas fa-map-marker-alt"></i> ${order.details}</div>`;
                 }
 
+                // نظام الملاحظات الجديد
                 let notesHtml = '';
                 if(order.notes && order.notes.trim() !== "") {
-                    notesHtml = `<div class="t-notes"><i class="fas fa-exclamation-circle"></i> ${order.notes}</div>`;
+                    // تحليل الملاحظات إلى قائمة نقاط
+                    let notesList = [];
+                    
+                    // تحويل الملاحظات القديمة إلى تنسيق النقاط
+                    if (order.notes.includes('•')) {
+                        // إذا كانت تحتوي على نقاط بالفعل
+                        notesList = order.notes.split('•').filter(note => note.trim() !== "");
+                    } else if (order.notes.includes('-') || order.notes.includes('*')) {
+                        // إذا كانت تحتوي على شرطات أو نجوم
+                        const separator = order.notes.includes('-') ? '-' : '*';
+                        notesList = order.notes.split(separator).filter(note => note.trim() !== "");
+                    } else {
+                        // إذا كانت نصاً عادياً
+                        notesList = [order.notes.trim()];
+                    }
+                    
+                    // تنظيف الملاحظات
+                    notesList = notesList.map(note => note.trim());
+                    
+                    if (notesList.length > 0) {
+                        const notesItems = notesList.map(note => `
+                            <li class="note-item">
+                                <span class="note-text">${note}</span>
+                            </li>
+                        `).join('');
+                        
+                        notesHtml = `
+                            <div class="t-notes-container">
+                                <div class="notes-header">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    <span>ملاحظات خاصة</span>
+                                    <span style="margin-right: auto; font-size: 0.8rem; color: #ffcc00;">
+                                        (${notesList.length} ملاحظة)
+                                    </span>
+                                </div>
+                                <ul class="notes-list">
+                                    ${notesItems}
+                                </ul>
+                            </div>
+                        `;
+                    }
                 }
 
                 let paymentHtml = '';
@@ -1115,7 +1235,6 @@
                     </div>`;
                 }
                 
-                // إضافة معلومات العميل إذا كان موجوداً
                 let customerInfoHtml = '';
                 if(order.customerId && order.customerId.trim() !== "") {
                     customerInfoHtml = `<div class="customer-info">
@@ -1204,14 +1323,24 @@
             });
         }
 
-        function markDone(id) {
+        async function markDone(id) {
             document.getElementById(`ticket-${id}`).style.opacity = '0.5';
-            fetch(API_URL, {
-                method: 'POST', mode: 'no-cors',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `action=done&id=${id}`
-            }).then(() => {
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=done&id=${id}`
+                });
+                
+                const result = await response.json();
+                
+                if (result.result === 'success') {
+                    console.log(`تم إتمام الطلب #${id}`);
+                }
+                
                 fetchData();
+                
                 if (currentAlertOrder && currentAlertOrder.id == id) {
                     document.getElementById('alert-overlay').style.display = 'none';
                     if (alertTimerInterval) {
@@ -1221,16 +1350,45 @@
                     stopAlertSound();
                     currentAlertOrder = null;
                 }
-            });
+            } catch (error) {
+                console.error('Error marking order as done:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'فشل في إتمام الطلب',
+                    background: '#222',
+                    color: '#fff'
+                });
+            }
         }
 
-        function restoreOrder(id) {
+        async function restoreOrder(id) {
             document.getElementById(`ticket-${id}`).style.opacity = '0.5';
-            fetch(API_URL, {
-                method: 'POST', mode: 'no-cors',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `action=restore&id=${id}`
-            }).then(() => fetchData());
+            
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `action=restore&id=${id}`
+                });
+                
+                const result = await response.json();
+                
+                if (result.result === 'success') {
+                    console.log(`تم استرجاع الطلب #${id}`);
+                }
+                
+                fetchData();
+            } catch (error) {
+                console.error('Error restoring order:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: 'فشل في استرجاع الطلب',
+                    background: '#222',
+                    color: '#fff'
+                });
+            }
         }
 
         function printOrder(id) {
@@ -1282,14 +1440,15 @@
                 });
             }
 
-            // تعديل: إزالة رقم العميل من الفاتورة المطبوعة
+            // إزالة كود الملاحظات من الطباعة - لا تظهر الملاحظات في الفاتورة
+            // تظهر الملاحظات فقط للموظفين في شاشة المطبخ
+
             document.getElementById('print-content').innerHTML = `
                 <div class="print-header">
                     <h1>سفرة الدار</h1>
                     <div class="print-id">الطلب رقم: #${order.id}</div>
                     <div class="print-time">${shortMiladiDate}</div>
                     <div class="print-time">${timeString}</div>
-                    <!-- تم إزالة سطر رقم العميل من هنا -->
                 </div>
 
                 <div class="print-section">
