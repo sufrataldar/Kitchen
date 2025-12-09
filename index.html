@@ -71,7 +71,6 @@
         .item-li::before { content: "•"; color: var(--primary); margin-left: 8px; font-size: 1.2rem; }
         .item-li:last-child { border-bottom: none; }
 
-        /* نظام الملاحظات الجديد */
         .t-notes-container {
             background: #332b00;
             border: 1px solid #665500;
@@ -402,7 +401,7 @@
         
         .print-header { 
             text-align: center; 
-            border-bottom: 2px solid #ff6600; 
+            border-bottom: 3px solid #ff6600; 
             padding-bottom: 15px; 
             margin-bottom: 20px; 
         }
@@ -410,21 +409,55 @@
         .print-header h1 { 
             margin: 0; 
             color: #ff6600; 
-            font-size: 28px; 
+            font-size: 32px; 
             font-weight: 900;
+            font-family: 'Cairo', sans-serif;
         }
         
         .print-id { 
-            font-size: 32px; 
+            font-size: 38px; 
             font-weight: 900; 
             color: #000; 
-            margin: 10px 0; 
+            margin: 10px 0;
+            font-family: 'Cairo', sans-serif;
         }
         
         .print-time { 
-            font-size: 16px; 
+            font-size: 18px; 
             color: #666; 
-            margin: 5px 0; 
+            margin: 5px 0;
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        .print-customer-info {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px dashed #ccc;
+        }
+        
+        .print-customer-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 16px;
+        }
+        
+        .print-customer-row:last-child {
+            border-bottom: none;
+        }
+        
+        .print-customer-label {
+            color: #666;
+            font-weight: bold;
+        }
+        
+        .print-customer-value {
+            color: #000;
+            font-weight: bold;
+            text-align: left;
         }
         
         .print-section { 
@@ -436,46 +469,73 @@
             font-weight: bold; 
             color: #333; 
             margin-bottom: 8px; 
-            font-size: 16px;
-            border-bottom: 1px dashed #ccc;
-            padding-bottom: 5px;
-        }
-        
-        .print-items { 
-            list-style: none; 
-            padding: 0; 
-            margin: 0; 
-        }
-        
-        .print-item { 
-            padding: 12px 0; 
-            border-bottom: 1px dashed #ddd; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
             font-size: 18px;
-            font-weight: 700;
+            border-bottom: 2px solid #ff6600;
+            padding-bottom: 5px;
+            font-family: 'Cairo', sans-serif;
         }
         
-        .print-item-qty {
+        .print-items-grid {
+            display: grid;
+            grid-template-columns: 1fr auto auto auto;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 16px;
+        }
+        
+        .print-grid-header {
+            font-weight: bold;
+            color: #333;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .print-grid-row {
+            display: contents;
+        }
+        
+        .print-grid-item {
+            padding: 8px 0;
+            border-bottom: 1px dashed #ddd;
+        }
+        
+        .print-grid-item-name {
+            text-align: right;
+            font-weight: bold;
+        }
+        
+        .print-grid-item-qty {
+            text-align: center;
             background: #ff6600;
-            color: white;
-            padding: 3px 10px;
+            color: black;
+            padding: 3px 8px;
             border-radius: 4px;
             font-weight: bold;
-            margin-left: 10px;
-            min-width: 40px;
+            min-width: 30px;
+        }
+        
+        .print-grid-item-price {
             text-align: center;
+            font-weight: bold;
+        }
+        
+        .print-grid-item-total {
+            text-align: left;
+            font-weight: bold;
+            color: #000;
         }
         
         .print-total { 
-            font-size: 24px; 
+            font-size: 28px; 
             font-weight: 900; 
             color: #000; 
             text-align: center; 
             margin-top: 25px; 
             padding-top: 15px; 
             border-top: 3px double #333; 
+            font-family: 'Cairo', sans-serif;
         }
         
         .print-actions { 
@@ -538,6 +598,39 @@
             100% { opacity: 0.3; transform: scale(0.95); filter: grayscale(1); }
         }
 
+        .print-pickup-time {
+            background: #fff8e1;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 2px solid #ffc107;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .print-pickup-time.urgent {
+            background: #ffeaea;
+            border-color: #ff4444;
+            color: #d32f2f;
+        }
+        
+        .print-pickup-time.scheduled {
+            background: #e8f5e9;
+            border-color: #4caf50;
+            color: #2e7d32;
+        }
+        
+        .print-pickup-time-label {
+            font-size: 18px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .print-pickup-time-value {
+            font-size: 22px;
+            font-weight: 900;
+        }
+        
         @media print {
             body * { 
                 visibility: hidden; 
@@ -567,12 +660,36 @@
             .print-id {
                 font-size: 26px !important;
             }
-            .print-item {
-                font-size: 16px !important;
-                padding: 8px 0 !important;
+            .print-items-grid {
+                font-size: 14px !important;
+                gap: 5px !important;
             }
-            .customer-number {
-                display: none !important;
+            .print-customer-info {
+                padding: 8px !important;
+                font-size: 14px !important;
+            }
+            .print-total {
+                font-size: 22px !important;
+            }
+            .print-grid-item-name {
+                font-size: 14px !important;
+            }
+            .print-grid-item-qty {
+                font-size: 14px !important;
+                padding: 2px 6px !important;
+            }
+            .print-grid-item-price, .print-grid-item-total {
+                font-size: 14px !important;
+            }
+            .print-pickup-time {
+                padding: 8px !important;
+                font-size: 14px !important;
+            }
+            .print-pickup-time-label {
+                font-size: 14px !important;
+            }
+            .print-pickup-time-value {
+                font-size: 16px !important;
             }
         }
     </style>
@@ -688,7 +805,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyODqeHSPLtkn_Q-uPqawQxnw1oi3XCx-Sn-s-J8uxxy5qjBdHUmuSLEGCpuln51Vcq/exec'; 
+        const API_URL = 'https://script.google.com/macros/s/AKfycbywDlpq9ZHxL1wF0NIGElc8VUS28EDGuS_8doWg7IgLseOBb-Ngrz6fNsUxeQ-FBS9d/exec'; 
 
         let systemStarted = false;
         let lastOrderCount = 0;
@@ -701,12 +818,88 @@
         let soundInterval = null;
         let alertStartTime = null;
         const ALERT_DURATION = 120;
+        
+        const menuData = {
+            "اللحم العربي": [ 
+                {id: 1, name: "مجبوس لحم (عربي)", price: 6.000}, {id: 2, name: "مقلوبة لحم (عربي)", price: 6.000}, 
+                {id: 3, name: "مشوي جدر لحم (عربي)", price: 6.000}, {id: 4, name: "مرق سبزي (عربي)", price: 6.500}, 
+                {id: 5, name: "بريه لحم (عربي)", price: 6.000}, {id: 6, name: "برياني لحم (عربي)", price: 6.000},
+                {id: 77, name: "مموش لحم (عربي)", price: 6.500} 
+            ],
+            "اللحم الاسترالي": [ 
+                {id: 7, name: "مجبوس لحم (استرالي)", price: 3.750}, {id: 8, name: "مقلوبة لحم (استرالي)", price: 4.250}, 
+                {id: 9, name: "مشوي جدر لحم (استرالي)", price: 4.250}, {id: 10, name: "مرق سبزي (استرالي)", price: 4.500}, 
+                {id: 11, name: "برياني لحم (استرالي)", price: 4.250},
+                {id: 78, name: "مموش لحم (استرالي)", price: 4.500}
+            ],
+            "الدجاج": [ 
+                {id: 12, name: "مجبوس دجاج", price: 2.750}, {id: 13, name: "دجاج 65", price: 2.750}, 
+                {id: 14, name: "بخاري دجاج", price: 3.000}, {id: 15, name: "برياني دجاج", price: 3.000}, 
+                {id: 16, name: "مقلوبة دجاج", price: 3.500}, {id: 17, name: "بتر جكن", price: 3.000}, 
+                {id: 18, name: "برياني الديره", price: 3.500},
+                {id: 79, name: "مرق دجاج", price: 2.750},
+                {id: 80, name: "مشوي جدر دجاج", price: 3.500}
+            ],
+            "الأطباق الجانبية": [
+                {id: 43, name: "تشريبه دجاج", price: 1.500}, {id: 44, name: "مرقوق لحم", price: 2.500},
+                {id: 45, name: "تشريبه لحم", price: 2.500}, {id: 46, name: "هريس", price: 1.500},
+                {id: 47, name: "جريش", price: 1.500}
+            ],
+            "الصواني (بحري)": [
+                {id: 48, name: "مربين (صواني)", price: 20.000}, {id: 49, name: "برياني ربيان (صواني)", price: 20.000},
+                {id: 50, name: "مطبق سيباس (صواني)", price: 28.000}, {id: 51, name: "سيباس مشوي (صواني)", price: 28.000},
+                {id: 52, name: "مطبق هامور (صواني)", price: 30.000}, {id: 53, name: "مرق هامور (صواني)", price: 30.000},
+                {id: 54, name: "مكس مطبق بحري", price: 35.000}, {id: 55, name: "زبيدي (صواني)", price: 30.000},
+                {id: 56, name: "زبيدي ملكي مع ربيان (صواني)", price: 35.000}
+            ],
+            "الصواني (دجاج)": [
+                {id: 57, name: "دجاج 65 (صواني)", price: 13.000}, {id: 58, name: "مجبوس الدجاج (صواني)", price: 13.000},
+                {id: 59, name: "برياني دجاج (صواني)", price: 14.000}, {id: 60, name: "بخاري دجاج (صواني)", price: 14.000},
+                {id: 61, name: "برياني الديره (صوانi)", price: 15.000}, {id: 62, name: "بتر جكن (صواني)", price: 14.000},
+                {id: 63, name: "مقلوبة دجاج (صواني)", price: 15.000}
+            ],
+            "الصواني (لحم)": [
+                {id: 64, name: "مجبوس لحم استرالي (صواني)", price: 18.000}, {id: 65, name: "مجبوس لحم نعيمي (صوانi)", price: 25.000},
+                {id: 66, name: "برياني لحم استرالي (صواني)", price: 20.000}, {id: 67, name: "برياني لحم نعيمي (صوانi)", price: 25.000},
+                {id: 68, name: "مقلوبة لحم استرالي (صواني)", price: 20.000}, {id: 69, name: "مقلوبة لحم نعيمي (صواني)", price: 25.000},
+                {id: 70, name: "مشوي جدر لحم استرالي (صواني)", price: 20.000}, {id: 71, name: "مشوي جدر لحم نعيمي (صوانi)", price: 25.000},
+                {id: 72, name: "بريه لحم نعيمي (صواني)", price: 25.000}, {id: 73, name: "برياني لحم سفرة الدار استرالي (صواني)", price: 20.000},
+                {id: 74, name: "برياني لحم سفرة الدار نعيمي (صواني)", price: 25.000}, {id: 75, name: "شبزي استرالي (صواني)", price: 21.500},
+                {id: 76, name: "شبزي نعيمي (صواني)", price: 26.500}
+            ],
+            "الذبايح": [ 
+                {id: 19, name: "ربع خروف (استرالي)", price: 30.000}, {id: 20, name: "نصف خروف (استرالي)", price: 60.000}, 
+                {id: 21, name: "خروف كامل (استرالي)", price: 120.000}, {id: 22, name: "ربع خروف (عربي)", price: 40.000}, 
+                {id: 23, name: "نصف خروف (عربي)", price: 80.000}, {id: 24, name: "خروف كامل (عربي)", price: 145.000} 
+            ],
+            "السمك": [ 
+                {id: 25, name: "مطبق زبيدي", price: 7.000}, {id: 26, name: "سيباس مشوي", price: 6.500}, 
+                {id: 27, name: "مطبق زبيدي ملكي", price: 8.000}, {id: 28, name: "برياني ربيان", price: 4.500}, 
+                {id: 29, name: "مرق هامور", price: 5.000}, {id: 30, name: "مربين", price: 4.500}, 
+                {id: 31, name: "مموش ربيان", price: 4.500}, {id: 32, name: "مطبق سيباس", price: 6.500} 
+            ],
+            "السلطات": [ 
+                {id: 33, name: "سلطة خضراء", price: 0.750}, {id: 34, name: "سلطة ججرير رمان", price: 1.000}, 
+                {id: 35, name: "ورق عنب", price: 1.500}, {id: 36, name: "روب وخيار", price: 0.750}, 
+                {id: 37, name: "تبولة", price: 1.000}, {id: 38, name: "فتوش", price: 1.000},
+                {id: 86, name: "روب", price: 0.200}
+            ],
+            "المشروبات": [ 
+                {id: 39, name: "لبن", price: 0.150}, {id: 40, name: "لبن نعناع", price: 0.150}, 
+                {id: 81, name: "بيبسي", price: 0.150}, 
+                {id: 82, name: "سفن اب", price: 0.150},
+                {id: 83, name: "ميرندا", price: 0.150},
+                {id: 42, name: "ماء صغير", price: 0.150},
+                {id: 84, name: "بيبسي (دايت)", price: 0.150},
+                {id: 85, name: "سفن اب (دايت)", price: 0.150}
+            ]
+        };
 
         function formatPaymentMethod(method) {
             if (!method) return '';
             
             const methodMap = {
-                'cash': 'Cash',
+                'cash': 'نقداً',
                 'card': 'بطاقة ائتمان',
                 'knet': 'كي نت',
                 'visa': 'فيزا',
@@ -722,11 +915,24 @@
                 'أخرى': 'أخرى',
                 'نقدا': 'نقداً',
                 'نقداً': 'نقداً',
-                'كاش': 'نقداً'
+                'كاش': 'نقداً',
+                'link': 'Link',
+                'Cash': 'نقداً',
+                'Link': 'Link'
             };
             
             const lowerMethod = method.toLowerCase().trim();
             return methodMap[lowerMethod] || method;
+        }
+        
+        function findItemPrice(itemName) {
+            for(const cat in menuData) {
+                const item = menuData[cat].find(i => i.name === itemName);
+                if(item) {
+                    return item.price;
+                }
+            }
+            return 0;
         }
 
         function startSystem() {
@@ -1153,7 +1359,21 @@
                 ticket.className = cardClass;
                 ticket.id = `ticket-${order.id}`;
 
-                const itemsList = order.items ? order.items.split(' + ').map(i => `<li class="item-li">${i}</li>`).join('') : '';
+                let itemsList = '';
+                if (order.items) {
+                    const items = order.items.split(' + ');
+                    items.forEach(item => {
+                        const match = item.match(/(.+)\s+\(x(\d+)\)\s+-\s+([\d.]+)\s+KD/);
+                        if (match) {
+                            const itemName = match[1].trim();
+                            const qty = match[2];
+                            const totalPrice = match[3];
+                            itemsList += `<li class="item-li">${itemName} (x${qty}) - ${totalPrice} KD</li>`;
+                        } else {
+                            itemsList += `<li class="item-li">${item}</li>`;
+                        }
+                    });
+                }
 
                 let cxTag = order.type === 'New CX' ? `<span class="tag tag-new">New CX</span>` : `<span class="tag tag-old">Old CX</span>`;
                 
@@ -1180,26 +1400,19 @@
                     detailsHtml = `<div class="info-addr"><i class="fas fa-map-marker-alt"></i> ${order.details}</div>`;
                 }
 
-                // نظام الملاحظات الجديد
                 let notesHtml = '';
                 if(order.notes && order.notes.trim() !== "") {
-                    // تحليل الملاحظات إلى قائمة نقاط
                     let notesList = [];
                     
-                    // تحويل الملاحظات القديمة إلى تنسيق النقاط
                     if (order.notes.includes('•')) {
-                        // إذا كانت تحتوي على نقاط بالفعل
                         notesList = order.notes.split('•').filter(note => note.trim() !== "");
                     } else if (order.notes.includes('-') || order.notes.includes('*')) {
-                        // إذا كانت تحتوي على شرطات أو نجوم
                         const separator = order.notes.includes('-') ? '-' : '*';
                         notesList = order.notes.split(separator).filter(note => note.trim() !== "");
                     } else {
-                        // إذا كانت نصاً عادياً
                         notesList = [order.notes.trim()];
                     }
                     
-                    // تنظيف الملاحظات
                     notesList = notesList.map(note => note.trim());
                     
                     if (notesList.length > 0) {
@@ -1424,24 +1637,65 @@
             }).replace(/\//g, '-');
 
             let itemsHtml = '';
+            let totalCalculated = 0;
+            
             if (order.items) {
                 const items = order.items.split(' + ');
                 items.forEach(item => {
-                    const match = item.match(/\(x(\d+)\)/);
-                    const qty = match ? match[1] : '1';
-                    const itemName = item.replace(/\(x\d+\)/, '').trim();
-                    
-                    itemsHtml += `
-                        <div class="print-item">
-                            <span>${itemName}</span>
-                            <span class="print-item-qty">${qty}</span>
-                        </div>
-                    `;
+                    const match = item.match(/(.+)\s+\(x(\d+)\)\s+-\s+([\d.]+)\s+KD/);
+                    if (match) {
+                        const itemName = match[1].trim();
+                        const qty = match[2];
+                        const totalPrice = parseFloat(match[3]);
+                        totalCalculated += totalPrice;
+                        
+                        const itemPrice = findItemPrice(itemName);
+                        
+                        itemsHtml += `
+                            <div class="print-grid-row">
+                                <div class="print-grid-item print-grid-item-name">${itemName}</div>
+                                <div class="print-grid-item print-grid-item-qty">${qty}</div>
+                                <div class="print-grid-item print-grid-item-price">${itemPrice.toFixed(3)} د.ك</div>
+                                <div class="print-grid-item print-grid-item-total">${totalPrice.toFixed(3)} د.ك</div>
+                            </div>
+                        `;
+                    } else {
+                        itemsHtml += `
+                            <div class="print-grid-row">
+                                <div class="print-grid-item print-grid-item-name">${item}</div>
+                                <div class="print-grid-item print-grid-item-qty">1</div>
+                                <div class="print-grid-item print-grid-item-price">0.000 د.ك</div>
+                                <div class="print-grid-item print-grid-item-total">0.000 د.ك</div>
+                            </div>
+                        `;
+                    }
                 });
             }
 
-            // إزالة كود الملاحظات من الطباعة - لا تظهر الملاحظات في الفاتورة
-            // تظهر الملاحظات فقط للموظفين في شاشة المطبخ
+            const paymentText = formatPaymentMethod(order.paymentMethod);
+            
+            let pickupTimeHtml = '';
+            let pickupTimeClass = '';
+            
+            if (order.pickupTime) {
+                if (order.pickupTime.includes('فوري')) {
+                    pickupTimeClass = 'urgent';
+                    pickupTimeHtml = `
+                        <div class="print-pickup-time ${pickupTimeClass}">
+                            <div class="print-pickup-time-label">⏰ توقيت التجهيز:</div>
+                            <div class="print-pickup-time-value">فوري</div>
+                        </div>
+                    `;
+                } else {
+                    pickupTimeClass = 'scheduled';
+                    pickupTimeHtml = `
+                        <div class="print-pickup-time ${pickupTimeClass}">
+                            <div class="print-pickup-time-label">⏰ توقيت التجهيز:</div>
+                            <div class="print-pickup-time-value">${order.pickupTime}</div>
+                        </div>
+                    `;
+                }
+            }
 
             document.getElementById('print-content').innerHTML = `
                 <div class="print-header">
@@ -1451,9 +1705,28 @@
                     <div class="print-time">${timeString}</div>
                 </div>
 
+                <div class="print-customer-info">
+                    <div class="print-customer-row">
+                        <span class="print-customer-label">رقم الهاتف:</span>
+                        <span class="print-customer-value">${order.phone}</span>
+                    </div>
+                    <div class="print-customer-row">
+                        <span class="print-customer-label">طريقة الدفع:</span>
+                        <span class="print-customer-value">${paymentText}</span>
+                    </div>
+                </div>
+                
+                ${pickupTimeHtml}
+
                 <div class="print-section">
                     <div class="print-label">الأصناف المطلوبة:</div>
-                    <div class="print-items">
+                    <div class="print-items-grid">
+                        <div class="print-grid-row">
+                            <div class="print-grid-header">الصنف</div>
+                            <div class="print-grid-header">الكمية</div>
+                            <div class="print-grid-header">السعر</div>
+                            <div class="print-grid-header">المجموع</div>
+                        </div>
                         ${itemsHtml}
                     </div>
                 </div>
