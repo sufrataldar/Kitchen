@@ -631,6 +631,59 @@
             font-weight: 900;
         }
         
+        /* قسم الملاحظات في الطباعة */
+        .print-notes-section {
+            background: #fff9e6;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .print-notes-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            color: #8a6d3b;
+            font-weight: bold;
+            font-size: 18px;
+            border-bottom: 1px dashed #ffc107;
+            padding-bottom: 8px;
+        }
+        
+        .print-notes-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .print-note-item {
+            padding: 8px 0;
+            color: #5d4200;
+            font-size: 16px;
+            line-height: 1.4;
+            display: flex;
+            align-items: flex-start;
+            border-bottom: 1px dashed rgba(255, 193, 7, 0.3);
+        }
+        
+        .print-note-item:last-child {
+            border-bottom: none;
+        }
+        
+        .print-note-item::before {
+            content: "•";
+            color: #ff9800;
+            font-size: 20px;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+        
+        .print-note-text {
+            flex: 1;
+        }
+        
         @media print {
             body * { 
                 visibility: hidden; 
@@ -690,6 +743,17 @@
             }
             .print-pickup-time-value {
                 font-size: 16px !important;
+            }
+            .print-notes-section {
+                padding: 8px !important;
+                font-size: 13px !important;
+            }
+            .print-notes-header {
+                font-size: 14px !important;
+            }
+            .print-note-item {
+                font-size: 13px !important;
+                padding: 6px 0 !important;
             }
         }
     </style>
@@ -1697,6 +1761,46 @@
                 }
             }
 
+            // إضافة قسم الملاحظات للطباعة
+            let notesHtml = '';
+            if (order.notes && order.notes.trim() !== "") {
+                let notesList = [];
+                
+                if (order.notes.includes('•')) {
+                    notesList = order.notes.split('•').filter(note => note.trim() !== "");
+                } else if (order.notes.includes('-') || order.notes.includes('*')) {
+                    const separator = order.notes.includes('-') ? '-' : '*';
+                    notesList = order.notes.split(separator).filter(note => note.trim() !== "");
+                } else {
+                    notesList = [order.notes.trim()];
+                }
+                
+                notesList = notesList.map(note => note.trim());
+                
+                if (notesList.length > 0) {
+                    const notesItems = notesList.map(note => `
+                        <li class="print-note-item">
+                            <span class="print-note-text">${note}</span>
+                        </li>
+                    `).join('');
+                    
+                    notesHtml = `
+                        <div class="print-notes-section">
+                            <div class="print-notes-header">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span>ملاحظات خاصة</span>
+                                <span style="margin-right: auto; font-size: 0.8rem; color: #8a6d3b;">
+                                    (${notesList.length} ملاحظة)
+                                </span>
+                            </div>
+                            <ul class="print-notes-list">
+                                ${notesItems}
+                            </ul>
+                        </div>
+                    `;
+                }
+            }
+
             document.getElementById('print-content').innerHTML = `
                 <div class="print-header">
                     <h1>سفرة الدار</h1>
@@ -1717,6 +1821,8 @@
                 </div>
                 
                 ${pickupTimeHtml}
+                
+                ${notesHtml}
 
                 <div class="print-section">
                     <div class="print-label">الأصناف المطلوبة:</div>
