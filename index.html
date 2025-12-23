@@ -6,18 +6,20 @@
     <title>سفرة الدار | المطبخ</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="apple-touch-icon" href="https://archive.org/download/untitled-design-71_20251223/Untitled%20design%2821%29.png">
-    <link rel="icon" href="https://archive.org/download/untitled-design-71_20251223/Untitled%20design%2821%29.png">
+    <link rel="apple-touch-icon" href="https://archive.org/download/20251202_20251202_1107/%D8%B3%D9%81%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D8%A7%D8%B1.jpg">
+    <link rel="icon" href="https://archive.org/download/20251202_20251202_1107/%D8%B3%D9%81%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D8%A7%D8%B1.jpg">
     <style>
         :root {
             --primary: #ff6600; --bg-dark: #0f0f0f; --card-bg: #1e1e1e;
             --text-light: #ffffff; --text-gray: #aaaaaa; --border: #333333;
             --success: #00c851; --danger: #ff4444; --info: #33b5e5;
+            --warning: #ffbb33; --delivering: #9c27b0;
             --updated-color: #aa00ff;
             --print-color: #0066cc;
             --alert-color: #ff3300;
             --cancelled-color: #ff4444;
             --customer-color: #33b5e5;
+            --disabled-color: #666666;
         }
         * { box-sizing: border-box; }
         body { background-color: var(--bg-dark); color: var(--text-light); font-family: 'Cairo', sans-serif; margin: 0; padding: 20px; }
@@ -48,6 +50,9 @@
         .ticket.completed-ticket .t-header { background: #1a1a1a; border-top-color: #444; }
         .ticket.completed-ticket .t-id { color: #888; }
         
+        .ticket.delivering-ticket { border-top-color: var(--delivering); }
+        .ticket.delivering-ticket .t-header { border-top-color: var(--delivering); }
+        
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
         .t-header { background: #252525; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); border-top: 4px solid var(--primary); }
@@ -61,6 +66,8 @@
         .tag-later { background: rgba(51, 181, 229, 0.15); color: #33b5e5; border: 1px solid rgba(51,181,229,0.3); }
         .tag-new { background: rgba(0, 200, 81, 0.15); color: #00c851; border: 1px solid rgba(0,200,81,0.3); }
         .tag-old { background: rgba(255, 68, 68, 0.15); color: #ff4444; border: 1px solid rgba(255,68,68,0.3); }
+        .tag-delivering { background: rgba(156, 39, 176, 0.15); color: #9c27b0; border: 1px solid rgba(156,39,176,0.3); }
+        .tag-completed { background: rgba(0, 200, 81, 0.15); color: #00c851; border: 1px solid rgba(0,200,81,0.3); }
 
         .updated-badge { background: var(--updated-color); color: white; font-size: 0.8rem; padding: 2px 8px; border-radius: 4px; font-weight: bold; margin-right: 5px; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
@@ -167,7 +174,11 @@
 
         .t-actions { display: flex; gap: 10px; padding: 10px 15px; background: #222; border-top: 1px solid #333; }
         .action-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-family: 'Cairo'; font-weight: bold; font-size: 0.9rem; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px; color: #fff;}
-        .btn-done { background: #00c851; } .btn-done:hover { background: #007e33; }
+        .btn-done { background: #00c851; } 
+        .btn-done:hover { background: #007e33; }
+        .btn-done:disabled { background: var(--disabled-color); cursor: not-allowed; opacity: 0.6; }
+        .btn-done.completed { background: var(--disabled-color); cursor: default; }
+        
         .btn-restore { background: #33b5e5; } .btn-restore:hover { background: #0099cc; }
         .btn-print { background: var(--print-color); } .btn-print:hover { background: #004080; }
 
@@ -598,35 +609,36 @@
             100% { opacity: 0.3; transform: scale(0.95); filter: grayscale(1); }
         }
 
-        .print-pickup-time {
-            background: #fff8e1;
+        /* قسم توقيت التجهيز المتقدم في الطباعة */
+        .print-delivery-time {
+            background: #e8f5e9;
             padding: 12px;
             border-radius: 8px;
             margin: 10px 0;
-            border: 2px solid #ffc107;
+            border: 2px solid #4caf50;
             text-align: center;
             font-weight: bold;
         }
         
-        .print-pickup-time.urgent {
+        .print-delivery-time.urgent {
             background: #ffeaea;
             border-color: #ff4444;
             color: #d32f2f;
         }
         
-        .print-pickup-time.scheduled {
+        .print-delivery-time.scheduled {
             background: #e8f5e9;
             border-color: #4caf50;
             color: #2e7d32;
         }
         
-        .print-pickup-time-label {
+        .print-delivery-time-label {
             font-size: 18px;
             margin-bottom: 5px;
             font-weight: bold;
         }
         
-        .print-pickup-time-value {
+        .print-delivery-time-value {
             font-size: 22px;
             font-weight: 900;
         }
@@ -684,6 +696,19 @@
             flex: 1;
         }
         
+        /* قسم التاريخ الهجري في الطباعة */
+        .print-hijri-date {
+            background: #f3e5f5;
+            border: 2px solid #9c27b0;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            text-align: center;
+            color: #7b1fa2;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
         @media print {
             body * { 
                 visibility: hidden; 
@@ -734,14 +759,14 @@
             .print-grid-item-price, .print-grid-item-total {
                 font-size: 14px !important;
             }
-            .print-pickup-time {
+            .print-delivery-time {
                 padding: 8px !important;
                 font-size: 14px !important;
             }
-            .print-pickup-time-label {
+            .print-delivery-time-label {
                 font-size: 14px !important;
             }
-            .print-pickup-time-value {
+            .print-delivery-time-value {
                 font-size: 16px !important;
             }
             .print-notes-section {
@@ -755,6 +780,25 @@
                 font-size: 13px !important;
                 padding: 6px 0 !important;
             }
+            .print-hijri-date {
+                font-size: 12px !important;
+                padding: 6px !important;
+            }
+        }
+        
+        /* قسم معلومات السائق */
+        .driver-info { 
+            background: rgba(156, 39, 176, 0.1); 
+            border: 1px solid #9c27b0; 
+            color: #9c27b0; 
+            padding: 8px 12px; 
+            border-radius: 6px; 
+            margin: 8px 0; 
+            font-weight: bold; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px;
+            font-size: 1rem;
         }
     </style>
 </head>
@@ -767,7 +811,7 @@
 
     <header>
         <div class="brand">
-            <img src="https://archive.org/download/untitled-design-71_20251223/Untitled%20design%2821%29.png" alt="Logo">
+            <img src="https://archive.org/download/20251202_20251202_1107/%D8%B3%D9%81%D8%B1%D8%A9%20%D8%A7%D9%84%D8%AF%D8%A7%D8%B1.jpg" alt="Logo">
             <span>سفرة الدار | المطبخ</span>
         </div>
         <div class="system-info">
@@ -781,6 +825,10 @@
             قيد التحضير <i class="fas fa-fire"></i>
             <span class="tab-badge" id="count-active">0</span>
         </div>
+        <div class="tab-btn" onclick="switchTab('delivering')">
+            قيد التوصيل <i class="fas fa-motorcycle"></i>
+            <span class="tab-badge" id="count-delivering">0</span>
+        </div>
         <div class="tab-btn" onclick="switchTab('completed')">
             الطلبات المكتملة <i class="fas fa-check-circle"></i>
             <span class="tab-badge" id="count-completed">0</span>
@@ -791,6 +839,10 @@
     
     <div id="active-orders" class="tab-content active">
         <div id="active-grid" class="grid-container"></div>
+    </div>
+
+    <div id="delivering-orders" class="tab-content">
+        <div id="delivering-grid" class="grid-container"></div>
     </div>
 
     <div id="completed-orders" class="tab-content">
@@ -869,7 +921,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbywDlpq9ZHxL1wF0NIGElc8VUS28EDGuS_8doWg7IgLseOBb-Ngrz6fNsUxeQ-FBS9d/exec'; 
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxaYccVd3uTDBYGFF7VuMmziCddUlypEkktDAl01CXAOi76IM4_Sfl_4bAycSxwNw_c/exec'; 
 
         let systemStarted = false;
         let lastOrderCount = 0;
@@ -999,6 +1051,28 @@
             return 0;
         }
 
+        // دالة لتحويل التاريخ إلى هجري
+        function convertToHijri(gregorianDate) {
+            const gYear = gregorianDate.getFullYear();
+            const gMonth = gregorianDate.getMonth() + 1;
+            const gDay = gregorianDate.getDate();
+            
+            // معادلة تقريبية للتحويل
+            const hijriYear = Math.floor((gYear - 622) * 1.03);
+            const hijriMonth = gMonth;
+            const hijriDay = gDay;
+            
+            const hijriMonths = [
+                'محرم', 'صفر', 'ربيع الأول', 'ربيع الآخر', 
+                'جمادى الأولى', 'جمادى الآخرة', 'رجب', 
+                'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
+            ];
+            
+            const hijriMonthName = hijriMonths[(hijriMonth - 1) % 12];
+            
+            return `${hijriDay} ${hijriMonthName} ${hijriYear} هـ`;
+        }
+
         function startSystem() {
             document.getElementById('start-overlay').style.display = 'none';
             systemStarted = true;
@@ -1035,6 +1109,9 @@
             if(tab === 'active') {
                 document.querySelector('div[onclick="switchTab(\'active\')"]').classList.add('active');
                 document.getElementById('active-orders').classList.add('active');
+            } else if(tab === 'delivering') {
+                document.querySelector('div[onclick="switchTab(\'delivering\')"]').classList.add('active');
+                document.getElementById('delivering-orders').classList.add('active');
             } else {
                 document.querySelector('div[onclick="switchTab(\'completed\')"]').classList.add('active');
                 document.getElementById('completed-orders').classList.add('active');
@@ -1057,6 +1134,7 @@
 
         function processOrders(orders) {
             const activeGrid = document.getElementById('active-grid');
+            const deliveringGrid = document.getElementById('delivering-grid');
             const completedGrid = document.getElementById('completed-grid');
             
             const filteredOrders = orders.filter(order => {
@@ -1070,10 +1148,12 @@
                 return true;
             });
             
-            const activeOrders = filteredOrders.filter(o => o.status !== 'Completed');
-            const completedOrders = filteredOrders.filter(o => o.status === 'Completed');
+            const activeOrders = filteredOrders.filter(o => o.status === 'New' || o.status === 'Updated' || o.status === 'Ready');
+            const deliveringOrders = filteredOrders.filter(o => o.status === 'Picked' || o.status === 'Assigned');
+            const completedOrders = filteredOrders.filter(o => o.status === 'Delivered' || o.status === 'Completed');
 
             document.getElementById('count-active').innerText = activeOrders.length;
+            document.getElementById('count-delivering').innerText = deliveringOrders.length;
             document.getElementById('count-completed').innerText = completedOrders.length;
 
             const currentOrderIds = new Set(orders.map(o => o.id));
@@ -1119,8 +1199,9 @@
 
             isFirstRun = false;
 
-            renderGrid(activeOrders, activeGrid, false);
-            renderGrid(completedOrders, completedGrid, true);
+            renderGrid(activeOrders, activeGrid, 'active');
+            renderGrid(deliveringOrders, deliveringGrid, 'delivering');
+            renderGrid(completedOrders, completedGrid, 'completed');
         }
 
         async function logNotification(orderId, status) {
@@ -1400,7 +1481,7 @@
             }
         }
 
-        function renderGrid(orders, container, isCompleted) {
+        function renderGrid(orders, container, tabType) {
             container.innerHTML = '';
 
             if (orders.length === 0) {
@@ -1412,11 +1493,14 @@
                 const ticket = document.createElement('div');
                 
                 const orderDate = new Date(order.time);
-                const isRecent = !isCompleted && (new Date() - orderDate) < (5 * 60 * 1000);
-                const isUpdated = !isCompleted && order.status === 'Updated';
+                const isRecent = tabType === 'active' && (new Date() - orderDate) < (5 * 60 * 1000);
+                const isUpdated = tabType === 'active' && order.status === 'Updated';
+                const isDelivering = tabType === 'delivering';
+                const isCompleted = tabType === 'completed';
                 
                 let cardClass = 'ticket';
                 if(isCompleted) cardClass += ' completed-ticket';
+                else if(isDelivering) cardClass += ' delivering-ticket';
                 else if(isUpdated) cardClass += ' updated-card';
                 else if(isRecent) cardClass += ' flash-card';
                 
@@ -1445,7 +1529,15 @@
                 if(order.pickupTime && order.pickupTime.includes('فوري')) {
                     timeTag = `<span class="tag tag-now"><i class="fas fa-fire"></i> فوري</span>`;
                 } else {
-                    timeTag = `<span class="tag tag-later"><i class="fas fa-clock"></i> ${order.pickupTime}</span>`;
+                    timeTag = `<span class="tag tag-later"><i class="fas fa-clock"></i> وقت محدد</span>`;
+                }
+
+                // إضافة تاج الحالة بناءً على تبويب العرض
+                let statusTag = '';
+                if(isDelivering) {
+                    statusTag = `<span class="tag tag-delivering"><i class="fas fa-motorcycle"></i> قيد التوصيل</span>`;
+                } else if(isCompleted) {
+                    statusTag = `<span class="tag tag-completed"><i class="fas fa-check-circle"></i> مكتمل</span>`;
                 }
 
                 let updateBadgeHtml = '';
@@ -1520,6 +1612,15 @@
                     </div>`;
                 }
 
+                // إضافة معلومات السائق إذا كان الطلب قيد التوصيل
+                let driverInfoHtml = '';
+                if(isDelivering && order.driverId) {
+                    driverInfoHtml = `<div class="driver-info">
+                        <i class="fas fa-motorcycle"></i>
+                        <span>السائق: ${order.driverId}</span>
+                    </div>`;
+                }
+
                 const formattedTime = orderDate.toLocaleTimeString('en-US', {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -1528,11 +1629,22 @@
                 });
 
                 let buttonsHtml = '';
-                if(!isCompleted) {
+                if(tabType === 'active') {
+                    const isReady = order.status === 'Ready';
+                    const isMarkedDone = order.status === 'Ready' || order.driverId;
+                    
                     buttonsHtml = `
-                        <button class="action-btn btn-done" onclick="markDone(${order.id})">
-                            <i class="fas fa-check-circle"></i> Done
+                        <button class="action-btn btn-done ${isMarkedDone ? 'completed' : ''}" 
+                                onclick="markDone(${order.id})" 
+                                ${isMarkedDone ? 'disabled' : ''}>
+                            <i class="fas fa-check-circle"></i> ${isReady ? 'جاهز' : 'Done'}
                         </button>
+                        <button class="action-btn btn-print" onclick="printOrder(${order.id})">
+                            <i class="fas fa-print"></i> Print
+                        </button>
+                    `;
+                } else if(tabType === 'delivering') {
+                    buttonsHtml = `
                         <button class="action-btn btn-print" onclick="printOrder(${order.id})">
                             <i class="fas fa-print"></i> Print
                         </button>
@@ -1560,6 +1672,7 @@
                     <div class="t-tags">
                         ${timeTag}
                         ${cxTag}
+                        ${statusTag}
                     </div>
 
                     <div class="t-body">
@@ -1572,6 +1685,7 @@
                     
                     ${paymentHtml}
                     ${customerInfoHtml}
+                    ${driverInfoHtml}
 
                     <div class="t-total">
                         <span class="total-txt">المجموع الكلي</span>
@@ -1601,7 +1715,19 @@
         }
 
         async function markDone(id) {
-            document.getElementById(`ticket-${id}`).style.opacity = '0.5';
+            const ticketElement = document.getElementById(`ticket-${id}`);
+            if (!ticketElement) return;
+            
+            // تغيير زر Done إلى اللون الرمادي وتعطيله
+            const doneButton = ticketElement.querySelector('.btn-done');
+            if (doneButton) {
+                doneButton.classList.add('completed');
+                doneButton.disabled = true;
+                doneButton.innerHTML = '<i class="fas fa-check-circle"></i> جاهز للتوصيل';
+            }
+            
+            // تعتيم التذكرة
+            ticketElement.style.opacity = '0.8';
             
             try {
                 const response = await fetch(API_URL, {
@@ -1614,9 +1740,23 @@
                 
                 if (result.result === 'success') {
                     console.log(`تم إتمام الطلب #${id}`);
+                    
+                    // إظهار رسالة نجاح
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-start',
+                        icon: 'success',
+                        title: `تم تجهيز الطلب #${id}`,
+                        text: 'تم نقله لقسم قيد التوصيل',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        background: '#222',
+                        color: '#fff'
+                    });
                 }
                 
-                fetchData();
+                // تحديث البيانات بعد ثانيتين
+                setTimeout(fetchData, 2000);
                 
                 if (currentAlertOrder && currentAlertOrder.id == id) {
                     document.getElementById('alert-overlay').style.display = 'none';
@@ -1629,6 +1769,16 @@
                 }
             } catch (error) {
                 console.error('Error marking order as done:', error);
+                
+                // إرجاع الزر إلى حالته الأصلية في حالة الخطأ
+                if (doneButton) {
+                    doneButton.classList.remove('completed');
+                    doneButton.disabled = false;
+                    doneButton.innerHTML = '<i class="fas fa-check-circle"></i> Done';
+                }
+                
+                ticketElement.style.opacity = '1';
+                
                 Swal.fire({
                     icon: 'error',
                     title: 'خطأ',
@@ -1738,26 +1888,39 @@
 
             const paymentText = formatPaymentMethod(order.paymentMethod);
             
-            let pickupTimeHtml = '';
-            let pickupTimeClass = '';
+            // قسم توقيت التجهيز المتقدم
+            let deliveryTimeHtml = '';
+            let deliveryTimeClass = '';
             
             if (order.pickupTime) {
                 if (order.pickupTime.includes('فوري')) {
-                    pickupTimeClass = 'urgent';
-                    pickupTimeHtml = `
-                        <div class="print-pickup-time ${pickupTimeClass}">
-                            <div class="print-pickup-time-label">⏰ توقيت التجهيز:</div>
-                            <div class="print-pickup-time-value">فوري</div>
+                    deliveryTimeClass = 'urgent';
+                    deliveryTimeHtml = `
+                        <div class="print-delivery-time ${deliveryTimeClass}">
+                            <div class="print-delivery-time-label">⏰ توقيت التجهيز:</div>
+                            <div class="print-delivery-time-value">فوري</div>
                         </div>
                     `;
                 } else {
-                    pickupTimeClass = 'scheduled';
-                    pickupTimeHtml = `
-                        <div class="print-pickup-time ${pickupTimeClass}">
-                            <div class="print-pickup-time-label">⏰ توقيت التجهيز:</div>
-                            <div class="print-pickup-time-value">${order.pickupTime}</div>
+                    deliveryTimeClass = 'scheduled';
+                    
+                    // محاولة استخراج معلومات التاريخ والوقت المتقدم من النص
+                    let displayTime = order.pickupTime;
+                    
+                    // إذا كان النص يحتوي على معلومات متقدمة
+                    if (order.pickupTime.includes('-')) {
+                        const parts = order.pickupTime.split('-').map(p => p.trim());
+                        displayTime = parts.join(' - ');
+                    }
+                    
+                    deliveryTimeHtml = `
+                        <div class="print-delivery-time ${deliveryTimeClass}">
+                            <div class="print-delivery-time-label">⏰ توقيت التجهيز المطلوب:</div>
+                            <div class="print-delivery-time-value">${displayTime}</div>
                         </div>
                     `;
+                    
+                    
                 }
             }
 
@@ -1818,9 +1981,13 @@
                         <span class="print-customer-label">طريقة الدفع:</span>
                         <span class="print-customer-value">${paymentText}</span>
                     </div>
+                    <div class="print-customer-row">
+                        <span class="print-customer-label">نوع العميل:</span>
+                        <span class="print-customer-value">${order.type}</span>
+                    </div>
                 </div>
                 
-                ${pickupTimeHtml}
+                ${deliveryTimeHtml}
                 
                 ${notesHtml}
 
