@@ -606,6 +606,32 @@
             font-size: 22px;
         }
         
+        /* العنوان في الفاتورة */
+        .print-address-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            border: 2px solid #0066cc;
+            text-align: center;
+        }
+        
+        .print-address-label {
+            color: #0066cc;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 8px;
+            font-family: 'Cairo', sans-serif;
+        }
+        
+        .print-address-value {
+            color: #000;
+            font-weight: bold;
+            font-size: 20px;
+            font-family: 'Cairo', sans-serif;
+            line-height: 1.4;
+        }
+        
         .print-total { 
             font-size: 28px; 
             font-weight: 900; 
@@ -799,6 +825,16 @@
             .print-customer-info {
                 padding: 8px !important;
                 font-size: 14px !important;
+            }
+            .print-address-section {
+                padding: 10px !important;
+                margin: 15px 0 !important;
+            }
+            .print-address-label {
+                font-size: 16px !important;
+            }
+            .print-address-value {
+                font-size: 17px !important;
             }
             .print-total {
                 font-size: 22px !important;
@@ -1943,6 +1979,17 @@
                 }
             }
 
+            // إضافة العنوان للطباعة إذا كان موجوداً
+            let addressHtml = '';
+            if (order.details && order.details.trim() !== "") {
+                addressHtml = `
+                    <div class="print-address-section">
+                        <div class="print-address-label">العنوان:</div>
+                        <div class="print-address-value">${order.details}</div>
+                    </div>
+                `;
+            }
+
             document.getElementById('print-content').innerHTML = `
                 <div class="print-header">
                     <h1>سفرة الدار</h1>
@@ -1963,6 +2010,8 @@
                 </div>
                 
                 ${pickupTimeHtml}
+                
+                ${addressHtml}
                 
                 ${notesHtml}
 
