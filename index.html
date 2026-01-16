@@ -63,7 +63,6 @@
         .tag-new { background: rgba(0, 200, 81, 0.15); color: #00c851; border: 1px solid rgba(0,200,81,0.3); }
         .tag-old { background: rgba(255, 68, 68, 0.15); color: #ff4444; border: 1px solid rgba(255,68,68,0.3); }
         
-        /* Delivery Fee Section Styles */
         .t-delivery-container {
             padding: 10px 15px;
             background: rgba(0, 188, 212, 0.1);
@@ -558,7 +557,6 @@
             color: #000;
         }
         
-        /* Print Summary Section Styles */
         .print-summary-section {
             margin: 20px 0;
             padding: 15px;
@@ -606,7 +604,6 @@
             font-size: 22px;
         }
         
-        /* العنوان في الفاتورة */
         .print-address-section {
             margin: 20px 0;
             padding: 15px;
@@ -736,7 +733,6 @@
             font-weight: 900;
         }
         
-        /* قسم الملاحظات في الطباعة */
         .print-notes-section {
             background: #fff9e6;
             border: 2px solid #ffc107;
@@ -1009,6 +1005,15 @@
         let alertStartTime = null;
         const ALERT_DURATION = 120;
         
+        // Caching system
+        const menuPriceCache = new Map();
+        const paymentMethodCache = new Map();
+        let lastOrdersData = null;
+        let lastFetchTime = 0;
+        const FETCH_CACHE_TIME = 3000; // 3 seconds cache
+        let fetchInProgress = false;
+        let pendingFetch = false;
+
         const menuData = {
             "اللحم العربي": [ 
                 {id: 1, name: "مجبوس لحم (عربي)", price: 6.000}, {id: 2, name: "مقلوبة لحم (عربي)", price: 6.000}, 
@@ -1085,9 +1090,16 @@
             ]
         };
 
-        function formatPaymentMethod(method) {
-            if (!method) return '';
+        // Pre-populate caches for faster access
+        (function initCaches() {
+            // Pre-cache all menu item prices
+            for (const category in menuData) {
+                menuData[category].forEach(item => {
+                    menuPriceCache.set(item.name, item.price);
+                });
+            }
             
+            // Pre-cache payment methods
             const methodMap = {
                 'cash': 'نقداً',
                 'card': 'بطاقة ائتمان',
@@ -1111,31 +1123,33 @@
                 'Link': 'Link'
             };
             
+            for (const [key, value] of Object.entries(methodMap)) {
+                paymentMethodCache.set(key, value);
+            }
+        })();
+
+        function formatPaymentMethod(method) {
+            if (!method) return '';
+            
             const lowerMethod = method.toLowerCase().trim();
-            return methodMap[lowerMethod] || method;
+            return paymentMethodCache.get(lowerMethod) || method;
         }
         
         function findItemPrice(itemName) {
-            for(const cat in menuData) {
-                const item = menuData[cat].find(i => i.name === itemName);
-                if(item) {
-                    return item.price;
-                }
-            }
-            return 0;
+            return menuPriceCache.get(itemName) || 0;
         }
         
         function calculateOrderSubtotal(order) {
             let subtotal = 0;
             if (order.items) {
                 const items = order.items.split(' + ');
-                items.forEach(item => {
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
                     const match = item.match(/(.+)\s+\(x(\d+)\)\s+-\s+([\d.]+)\s+KD/);
                     if (match) {
-                        const totalPrice = parseFloat(match[3]);
-                        subtotal += totalPrice;
+                        subtotal += parseFloat(match[3]);
                     }
-                });
+                }
             }
             return subtotal;
         }
@@ -1160,34 +1174,58 @@
             document.getElementById('start-overlay').style.display = 'none';
             systemStarted = true;
             
-            const newSound = document.getElementById('alert-sound-new');
-            const updatedSound = document.getElementById('alert-sound-updated');
-            const cancelledSound = document.getElementById('alert-sound-cancelled');
+            // Preload and cache audio files
+            const audioFiles = [
+                document.getElementById('alert-sound-new'),
+                document.getElementById('alert-sound-updated'),
+                document.getElementById('alert-sound-cancelled')
+            ];
             
-            newSound.volume = 0.1;
-            updatedSound.volume = 0.1;
-            cancelledSound.volume = 0.1;
-            
-            const sounds = [newSound, updatedSound, cancelledSound];
-            sounds.forEach(sound => {
-                sound.play().then(() => {
-                    sound.pause();
-                    sound.currentTime = 0;
-                    sound.volume = 0.7;
-                }).catch(console.error);
+            audioFiles.forEach(audio => {
+                audio.volume = 0.1;
+                audio.play().then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                    audio.volume = 0.7;
+                }).catch(e => {
+                    // Silent error for autoplay restrictions
+                    console.log("Audio preloading:", e.message);
+                });
             });
 
             fetchData();
-            setInterval(fetchData, 7000);
             setInterval(() => {
-                document.getElementById('clock').innerText = new Date().toLocaleTimeString('en-US', {hour12:false});
+                const now = Date.now();
+                if (now - lastFetchTime >= FETCH_CACHE_TIME && !fetchInProgress) {
+                    fetchData();
+                }
+            }, 1000);
+            
+            // Optimized clock update
+            const clockElement = document.getElementById('clock');
+            setInterval(() => {
+                const now = new Date();
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                const seconds = String(now.getSeconds()).padStart(2, '0');
+                clockElement.textContent = `${hours}:${minutes}:${seconds}`;
             }, 1000);
         }
 
         function switchTab(tab) {
+            if (currentTab === tab) return;
+            
             currentTab = tab;
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            for (let i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].classList.remove('active');
+            }
+            
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove('active');
+            }
             
             if(tab === 'active') {
                 document.querySelector('div[onclick="switchTab(\'active\')"]').classList.add('active');
@@ -1199,16 +1237,42 @@
         }
 
         async function fetchData() {
-            if(!systemStarted) return;
+            if(!systemStarted || fetchInProgress) {
+                pendingFetch = true;
+                return;
+            }
+            
+            fetchInProgress = true;
+            const currentTime = Date.now();
+            
             try {
-                const res = await fetch(`${API_URL}?t=${Date.now()}`);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const res = await fetch(`${API_URL}?t=${currentTime}`, {
+                    signal: controller.signal,
+                    cache: 'no-store'
+                });
+                
+                clearTimeout(timeoutId);
                 const data = await res.json();
+                
+                lastFetchTime = currentTime;
+                lastOrdersData = data;
                 
                 document.getElementById('loader').style.display = 'none';
                 processOrders(data);
 
             } catch (err) {
-                console.error("Connection Error");
+                if (err.name !== 'AbortError') {
+                    console.error("Connection Error:", err);
+                }
+            } finally {
+                fetchInProgress = false;
+                if (pendingFetch) {
+                    pendingFetch = false;
+                    setTimeout(fetchData, 100);
+                }
             }
         }
 
@@ -1216,25 +1280,41 @@
             const activeGrid = document.getElementById('active-grid');
             const completedGrid = document.getElementById('completed-grid');
             
-            const filteredOrders = orders.filter(order => {
-                if (deletedOrderIds.has(order.id)) {
+            // Fast filtering with early exit
+            const filteredOrders = [];
+            for (let i = 0; i < orders.length; i++) {
+                const order = orders[i];
+                if (!deletedOrderIds.has(order.id)) {
+                    filteredOrders.push(order);
+                } else {
                     const ticketElement = document.getElementById(`ticket-${order.id}`);
                     if (ticketElement) {
                         ticketElement.remove();
                     }
-                    return false;
                 }
-                return true;
-            });
+            }
             
-            const activeOrders = filteredOrders.filter(o => o.status !== 'Completed');
-            const completedOrders = filteredOrders.filter(o => o.status === 'Completed');
-
-            document.getElementById('count-active').innerText = activeOrders.length;
-            document.getElementById('count-completed').innerText = completedOrders.length;
-
-            const currentOrderIds = new Set(orders.map(o => o.id));
+            const activeOrders = [];
+            const completedOrders = [];
             
+            for (let i = 0; i < filteredOrders.length; i++) {
+                const order = filteredOrders[i];
+                if (order.status !== 'Completed') {
+                    activeOrders.push(order);
+                } else {
+                    completedOrders.push(order);
+                }
+            }
+
+            document.getElementById('count-active').textContent = activeOrders.length;
+            document.getElementById('count-completed').textContent = completedOrders.length;
+
+            const currentOrderIds = new Set();
+            for (let i = 0; i < orders.length; i++) {
+                currentOrderIds.add(orders[i].id);
+            }
+            
+            // Check for deleted orders
             for (const orderId of notifiedOrderIds) {
                 if (!currentOrderIds.has(orderId) && !deletedOrderIds.has(orderId)) {
                     const deletedOrder = {
@@ -1258,21 +1338,19 @@
                 }
             }
 
-            activeOrders.forEach(order => {
+            // Process new and updated orders
+            for (let i = 0; i < activeOrders.length; i++) {
+                const order = activeOrders[i];
                 if (!notifiedOrderIds.has(order.id)) {
                     showAlert(order, 'new');
                     notifiedOrderIds.add(order.id);
                 }
-            });
-
-            activeOrders.forEach(order => {
-                if (order.status === 'Updated') {
-                    if (!notifiedOrderIds.has(`updated-${order.id}`)) {
-                        showAlert(order, 'updated');
-                        notifiedOrderIds.add(`updated-${order.id}`);
-                    }
+                
+                if (order.status === 'Updated' && !notifiedOrderIds.has(`updated-${order.id}`)) {
+                    showAlert(order, 'updated');
+                    notifiedOrderIds.add(`updated-${order.id}`);
                 }
-            });
+            }
 
             isFirstRun = false;
 
@@ -1289,18 +1367,25 @@
                 params.append('timestamp', Date.now());
                 params.append('kitchenReceived', 'true');
                 
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: params
+                    body: params,
+                    signal: controller.signal
                 });
                 
+                clearTimeout(timeoutId);
                 const result = await response.json();
                 
                 console.log(`تم تسجيل إشعار للطلب #${orderId} - الحالة: ${status}`, result);
                 return result;
             } catch (error) {
-                console.error('خطأ في تسجيل الإشعار:', error);
+                if (error.name !== 'AbortError') {
+                    console.error('خطأ في تسجيل الإشعار:', error);
+                }
                 throw error;
             }
         }
@@ -1390,21 +1475,24 @@
                 clearInterval(alertTimerInterval);
             }
             
-            document.getElementById('alert-timer-fill').style.width = '0%';
-            document.getElementById('alert-timer-text').textContent = 'الدقيقة 0 من 2';
+            const timerFill = document.getElementById('alert-timer-fill');
+            const timerText = document.getElementById('alert-timer-text');
+            
+            timerFill.style.width = '0%';
+            timerText.textContent = 'الدقيقة 0 من 2';
             
             alertTimerInterval = setInterval(() => {
                 const elapsed = (Date.now() - alertStartTime) / 1000;
                 const percentage = Math.min((elapsed / ALERT_DURATION) * 100, 100);
                 
-                document.getElementById('alert-timer-fill').style.width = `${percentage}%`;
+                timerFill.style.width = `${percentage}%`;
                 
                 const minutes = Math.floor(elapsed / 60);
-                document.getElementById('alert-timer-text').textContent = `الدقيقة ${minutes} من 2`;
+                timerText.textContent = `الدقيقة ${minutes} من 2`;
                 
                 if (elapsed >= ALERT_DURATION) {
                     alertStartTime = Date.now();
-                    document.getElementById('alert-timer-fill').style.width = '0%';
+                    timerFill.style.width = '0%';
                 }
             }, 100);
         }
@@ -1458,60 +1546,13 @@
         }
 
         async function handleAlertReceived() {
-            if (currentAlertOrder) {
-                const typeBadge = document.getElementById('alert-type-badge');
-                
-                if (typeBadge.classList.contains('alert-type-cancelled')) {
-                    await handleDeleteAcknowledged();
-                } else {
-                    document.getElementById('alert-overlay').style.display = 'none';
-                    
-                    if (alertTimerInterval) {
-                        clearInterval(alertTimerInterval);
-                        alertTimerInterval = null;
-                    }
-                    stopAlertSound();
-                    
-                    const notificationStatus = typeBadge.classList.contains('alert-type-updated') ? 'Updated' : 'New';
-                    try {
-                        await logNotification(currentAlertOrder.id, notificationStatus);
-                        console.log(`تم تسجيل إشعار للطلب #${currentAlertOrder.id} بنجاح`);
-                    } catch (error) {
-                        console.error('فشل في تسجيل الإشعار:', error);
-                    }
-                    
-                    switchTab('active');
-                    
-                    setTimeout(() => {
-                        const ticketElement = document.getElementById(`ticket-${currentAlertOrder.id}`);
-                        if (ticketElement) {
-                            ticketElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            
-                            ticketElement.style.animation = 'flashBorder 1s infinite';
-                            setTimeout(() => {
-                                ticketElement.style.animation = '';
-                            }, 3000);
-                            
-                            Swal.fire({
-                                toast: true,
-                                position: 'top-start',
-                                icon: 'success',
-                                title: `تم استلام الطلب #${currentAlertOrder.id}`,
-                                showConfirmButton: false,
-                                timer: 2000,
-                                background: '#222',
-                                color: '#fff'
-                            });
-                        }
-                    }, 500);
-                    
-                    currentAlertOrder = null;
-                }
-            }
-        }
-
-        async function handleDeleteAcknowledged() {
-            if (currentAlertOrder) {
+            if (!currentAlertOrder) return;
+            
+            const typeBadge = document.getElementById('alert-type-badge');
+            
+            if (typeBadge.classList.contains('alert-type-cancelled')) {
+                await handleDeleteAcknowledged();
+            } else {
                 document.getElementById('alert-overlay').style.display = 'none';
                 
                 if (alertTimerInterval) {
@@ -1520,56 +1561,106 @@
                 }
                 stopAlertSound();
                 
+                const notificationStatus = typeBadge.classList.contains('alert-type-updated') ? 'Updated' : 'New';
                 try {
-                    await logNotification(currentAlertOrder.id, 'Cancelled');
-                    console.log(`تم تسجيل إشعار الإلغاء للطلب #${currentAlertOrder.id} بنجاح`);
+                    await logNotification(currentAlertOrder.id, notificationStatus);
                 } catch (error) {
-                    console.error('فشل في تسجيل إشعار الإلغاء:', error);
+                    console.error('فشل في تسجيل الإشعار:', error);
                 }
                 
-                deletedOrderIds.add(currentAlertOrder.id);
+                switchTab('active');
                 
-                const ticketElement = document.getElementById(`ticket-${currentAlertOrder.id}`);
-                if (ticketElement) {
-                    ticketElement.classList.add('deleted-ticket');
-                    
-                    setTimeout(() => {
-                        ticketElement.remove();
+                setTimeout(() => {
+                    const ticketElement = document.getElementById(`ticket-${currentAlertOrder.id}`);
+                    if (ticketElement) {
+                        ticketElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         
-                        const activeGrid = document.getElementById('active-grid');
-                        const activeOrders = Array.from(activeGrid.children).filter(el => !el.classList.contains('completed-ticket'));
-                        document.getElementById('count-active').innerText = activeOrders.length;
-                    }, 3000);
-                }
-                
-                Swal.fire({
-                    toast: true,
-                    position: 'top-start',
-                    icon: 'info',
-                    title: `تم تسجيل إلغاء الطلب #${currentAlertOrder.id}`,
-                    showConfirmButton: false,
-                    timer: 3000,
-                    background: '#222',
-                    color: '#fff'
-                });
+                        ticketElement.style.animation = 'flashBorder 1s infinite';
+                        setTimeout(() => {
+                            ticketElement.style.animation = '';
+                        }, 3000);
+                        
+                        Swal.fire({
+                            toast: true,
+                            position: 'top-start',
+                            icon: 'success',
+                            title: `تم استلام الطلب #${currentAlertOrder.id}`,
+                            showConfirmButton: false,
+                            timer: 2000,
+                            background: '#222',
+                            color: '#fff'
+                        });
+                    }
+                }, 500);
                 
                 currentAlertOrder = null;
             }
         }
 
+        async function handleDeleteAcknowledged() {
+            if (!currentAlertOrder) return;
+            
+            document.getElementById('alert-overlay').style.display = 'none';
+            
+            if (alertTimerInterval) {
+                clearInterval(alertTimerInterval);
+                alertTimerInterval = null;
+            }
+            stopAlertSound();
+            
+            try {
+                await logNotification(currentAlertOrder.id, 'Cancelled');
+            } catch (error) {
+                console.error('فشل في تسجيل إشعار الإلغاء:', error);
+            }
+            
+            deletedOrderIds.add(currentAlertOrder.id);
+            
+            const ticketElement = document.getElementById(`ticket-${currentAlertOrder.id}`);
+            if (ticketElement) {
+                ticketElement.classList.add('deleted-ticket');
+                
+                setTimeout(() => {
+                    ticketElement.remove();
+                    
+                    const activeGrid = document.getElementById('active-grid');
+                    const activeOrders = Array.from(activeGrid.children).filter(el => !el.classList.contains('completed-ticket'));
+                    document.getElementById('count-active').textContent = activeOrders.length;
+                }, 3000);
+            }
+            
+            Swal.fire({
+                toast: true,
+                position: 'top-start',
+                icon: 'info',
+                title: `تم تسجيل إلغاء الطلب #${currentAlertOrder.id}`,
+                showConfirmButton: false,
+                timer: 3000,
+                background: '#222',
+                color: '#fff'
+            });
+            
+            currentAlertOrder = null;
+        }
+
         function renderGrid(orders, container, isCompleted) {
-            container.innerHTML = '';
+            // Fast clear
+            container.textContent = '';
 
             if (orders.length === 0) {
                 container.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#444; margin-top:50px;">لا توجد طلبات هنا</div>';
                 return;
             }
 
-            orders.forEach(order => {
+            // Use DocumentFragment for batch DOM operations
+            const fragment = document.createDocumentFragment();
+            
+            for (let i = 0; i < orders.length; i++) {
+                const order = orders[i];
                 const ticket = document.createElement('div');
                 
                 const orderDate = new Date(order.time);
-                const isRecent = !isCompleted && (new Date() - orderDate) < (5 * 60 * 1000);
+                const isRecent = !isCompleted && (Date.now() - orderDate.getTime()) < (5 * 60 * 1000);
                 const isUpdated = !isCompleted && order.status === 'Updated';
                 
                 let cardClass = 'ticket';
@@ -1580,23 +1671,24 @@
                 ticket.className = cardClass;
                 ticket.id = `ticket-${order.id}`;
 
+                // Optimized items list generation
                 let itemsList = '';
                 if (order.items) {
                     const items = order.items.split(' + ');
-                    items.forEach(item => {
+                    for (let j = 0; j < items.length; j++) {
+                        const item = items[j];
                         const match = item.match(/(.+)\s+\(x(\d+)\)\s+-\s+([\d.]+)\s+KD/);
                         if (match) {
-                            const itemName = match[1].trim();
-                            const qty = match[2];
-                            const totalPrice = match[3];
-                            itemsList += `<li class="item-li">${itemName} (x${qty}) - ${totalPrice} KD</li>`;
+                            itemsList += `<li class="item-li">${match[1].trim()} (x${match[2]}) - ${match[3]} KD</li>`;
                         } else {
                             itemsList += `<li class="item-li">${item}</li>`;
                         }
-                    });
+                    }
                 }
 
-                let cxTag = order.type === 'New CX' ? `<span class="tag tag-new">New CX</span>` : `<span class="tag tag-old">Old CX</span>`;
+                const cxTag = order.type === 'New CX' ? 
+                    `<span class="tag tag-new">New CX</span>` : 
+                    `<span class="tag tag-old">Old CX</span>`;
                 
                 let timeTag = '';
                 if(order.pickupTime && order.pickupTime.includes('فوري')) {
@@ -1605,14 +1697,14 @@
                     timeTag = `<span class="tag tag-later"><i class="fas fa-clock"></i> ${order.pickupTime}</span>`;
                 }
 
-                let updateBadgeHtml = '';
-                if(isUpdated) {
-                    updateBadgeHtml = `<span class="updated-badge">تم تحديث الطلب ✏️</span>`;
-                }
+                const updateBadgeHtml = isUpdated ? 
+                    `<span class="updated-badge">تم تحديث الطلب ✏️</span>` : '';
 
                 let locHtml = 'لا يوجد موقع';
                 if(order.location && order.location.length > 5) {
-                    let href = order.location.startsWith('http') ? order.location : `https://maps.google.com/?q=${order.location}`;
+                    const href = order.location.startsWith('http') ? 
+                        order.location : 
+                        `https://maps.google.com/?q=${encodeURIComponent(order.location)}`;
                     locHtml = `<a href="${href}" target="_blank">فتح الخريطة <i class="fas fa-external-link-alt"></i></a>`;
                 }
 
@@ -1634,12 +1726,10 @@
                         notesList = [order.notes.trim()];
                     }
                     
-                    notesList = notesList.map(note => note.trim());
-                    
                     if (notesList.length > 0) {
                         const notesItems = notesList.map(note => `
                             <li class="note-item">
-                                <span class="note-text">${note}</span>
+                                <span class="note-text">${note.trim()}</span>
                             </li>
                         `).join('');
                         
@@ -1677,7 +1767,6 @@
                     </div>`;
                 }
                 
-                // حساب سعر التوصيل
                 const deliveryFee = getDeliveryFee(order);
                 const deliveryHtml = `
                     <div class="t-delivery-container">
@@ -1767,25 +1856,30 @@
                     </div>
                 `;
 
-                container.appendChild(ticket);
-            });
+                fragment.appendChild(ticket);
+            }
+            
+            container.appendChild(fragment);
         }
 
         async function markDone(id) {
-            document.getElementById(`ticket-${id}`).style.opacity = '0.5';
+            const ticketElement = document.getElementById(`ticket-${id}`);
+            if (ticketElement) {
+                ticketElement.style.opacity = '0.5';
+            }
             
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `action=done&id=${id}`
+                    body: `action=done&id=${id}`,
+                    signal: controller.signal
                 });
                 
-                const result = await response.json();
-                
-                if (result.result === 'success') {
-                    console.log(`تم إتمام الطلب #${id}`);
-                }
+                clearTimeout(timeoutId);
                 
                 fetchData();
                 
@@ -1799,43 +1893,50 @@
                     currentAlertOrder = null;
                 }
             } catch (error) {
-                console.error('Error marking order as done:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'فشل في إتمام الطلب',
-                    background: '#222',
-                    color: '#fff'
-                });
+                if (error.name !== 'AbortError') {
+                    console.error('Error marking order as done:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'فشل في إتمام الطلب',
+                        background: '#222',
+                        color: '#fff'
+                    });
+                }
             }
         }
 
         async function restoreOrder(id) {
-            document.getElementById(`ticket-${id}`).style.opacity = '0.5';
+            const ticketElement = document.getElementById(`ticket-${id}`);
+            if (ticketElement) {
+                ticketElement.style.opacity = '0.5';
+            }
             
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `action=restore&id=${id}`
+                    body: `action=restore&id=${id}`,
+                    signal: controller.signal
                 });
                 
-                const result = await response.json();
-                
-                if (result.result === 'success') {
-                    console.log(`تم استرجاع الطلب #${id}`);
-                }
+                clearTimeout(timeoutId);
                 
                 fetchData();
             } catch (error) {
-                console.error('Error restoring order:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ',
-                    text: 'فشل في استرجاع الطلب',
-                    background: '#222',
-                    color: '#fff'
-                });
+                if (error.name !== 'AbortError') {
+                    console.error('Error restoring order:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'فشل في استرجاع الطلب',
+                        background: '#222',
+                        color: '#fff'
+                    });
+                }
             }
         }
 
@@ -1845,6 +1946,16 @@
                 stopAlertSound();
             }
             
+            // Use cached data if available
+            if (lastOrdersData) {
+                const order = lastOrdersData.find(o => o.id == id);
+                if (order) {
+                    openPrintModal(order);
+                    return;
+                }
+            }
+            
+            // Fallback to API call
             fetch(API_URL)
                 .then(res => res.json())
                 .then(orders => {
@@ -1876,7 +1987,8 @@
             
             if (order.items) {
                 const items = order.items.split(' + ');
-                items.forEach(item => {
+                for (let i = 0; i < items.length; i++) {
+                    const item = items[i];
                     const match = item.match(/(.+)\s+\(x(\d+)\)\s+-\s+([\d.]+)\s+KD/);
                     if (match) {
                         const itemName = match[1].trim();
@@ -1904,7 +2016,7 @@
                             </div>
                         `;
                     }
-                });
+                }
             }
 
             const paymentText = formatPaymentMethod(order.paymentMethod);
@@ -1932,14 +2044,12 @@
                 }
             }
 
-            // حساب سعر التوصيل والمجموع
             const deliveryFee = parseFloat(getDeliveryFee(order));
             const orderTotal = parseFloat(order.total) || (subtotal + deliveryFee);
             const calculatedSubtotal = subtotal.toFixed(3);
             const calculatedDeliveryFee = deliveryFee.toFixed(3);
             const calculatedTotal = orderTotal.toFixed(3);
             
-            // قسم الملاحظات للطباعة
             let notesHtml = '';
             if (order.notes && order.notes.trim() !== "") {
                 let notesList = [];
@@ -1953,12 +2063,10 @@
                     notesList = [order.notes.trim()];
                 }
                 
-                notesList = notesList.map(note => note.trim());
-                
                 if (notesList.length > 0) {
                     const notesItems = notesList.map(note => `
                         <li class="print-note-item">
-                            <span class="print-note-text">${note}</span>
+                            <span class="print-note-text">${note.trim()}</span>
                         </li>
                     `).join('');
                     
@@ -1979,7 +2087,6 @@
                 }
             }
 
-            // إضافة العنوان للطباعة إذا كان موجوداً
             let addressHtml = '';
             if (order.details && order.details.trim() !== "") {
                 addressHtml = `
