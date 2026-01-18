@@ -178,6 +178,12 @@
             font-size: 1rem;
         }
         
+        .payment-method.cash { 
+            background: rgba(0, 200, 81, 0.1); 
+            border: 1px solid #00c851; 
+            color: #00c851; 
+        }
+        
         .customer-info { 
             background: rgba(51, 181, 229, 0.1); 
             border: 1px solid var(--customer-color); 
@@ -894,7 +900,7 @@
         </div>
         <div class="system-info">
             <div class="clock" id="clock">00:00</div>
-            <div class="status">● ONLINE</div>
+            <div class="status">● OFFLINE</div>
         </div>
     </header>
 
@@ -1005,6 +1011,12 @@
         let alertStartTime = null;
         const ALERT_DURATION = 120;
         
+        // متغيرات جديدة لإدارة التنبيهات عند بداية التشغيل
+        let initialLoadComplete = false;
+        let initialOrderIds = new Set();
+        let alertProcessingEnabled = false;
+        let systemStartTime = 0;
+        
         // Caching system
         const menuPriceCache = new Map();
         const paymentMethodCache = new Map();
@@ -1058,8 +1070,8 @@
                 {id: 66, name: "برياني لحم استرالي (صواني)", price: 20.000}, {id: 67, name: "برياني لحم نعيمي (صوانi)", price: 25.000},
                 {id: 68, name: "مقلوبة لحم استرالي (صواني)", price: 20.000}, {id: 69, name: "مقلوبة لحم نعيمي (صواني)", price: 25.000},
                 {id: 70, name: "مشوي جدر لحم استرالي (صواني)", price: 20.000}, {id: 71, name: "مشوي جدر لحم نعيمي (صوانi)", price: 25.000},
-                {id: 72, name: "بريه لحم نعيمي (صواني)", price: 25.000}, {id: 73, name: "برياني لحم سفرة الدار استرالي (صواني)", price: 20.000},
-                {id: 74, name: "برياني لحم سفرة الدار نعيمي (صواني)", price: 25.000}, {id: 75, name: "شبزي استرالي (صواني)", price: 21.500},
+                {id: 72, name: "بريه لحم نعيمي (صواني)", price: 25.000}, {id: 73, name: "برياني لحم سفرة الدار استرالي (صوانi)", price: 20.000},
+                {id: 74, name: "برياني لحم سفرة الدار نعيمي (صوانi)", price: 25.000}, {id: 75, name: "شبزي استرالي (صواني)", price: 21.500},
                 {id: 76, name: "شبزي نعيمي (صواني)", price: 26.500}
             ],
             "الذبايح": [ 
@@ -1101,7 +1113,7 @@
             
             // Pre-cache payment methods
             const methodMap = {
-                'cash': 'نقداً',
+                'cash': 'Cash',
                 'card': 'بطاقة ائتمان',
                 'knet': 'كي نت',
                 'visa': 'فيزا',
@@ -1115,11 +1127,11 @@
                 'google pay': 'جوجل باي',
                 'other': 'أخرى',
                 'أخرى': 'أخرى',
-                'نقدا': 'نقداً',
-                'نقداً': 'نقداً',
-                'كاش': 'نقداً',
+                'Cash': 'Cash',
+                'Cash': 'Cash',
+                'Cash': 'Cash',
                 'link': 'Link',
-                'Cash': 'نقداً',
+                'Cash': 'Cash',
                 'Link': 'Link'
             };
             
@@ -1173,6 +1185,11 @@
         function startSystem() {
             document.getElementById('start-overlay').style.display = 'none';
             systemStarted = true;
+            systemStartTime = Date.now();
+            
+            // تحديث حالة النظام
+            document.querySelector('.status').textContent = '● ONLINE';
+            document.querySelector('.status').style.color = '#00c851';
             
             // Preload and cache audio files
             const audioFiles = [
@@ -1193,11 +1210,22 @@
                 });
             });
 
-            fetchData();
+            // جلب البيانات الأولية بدون تشغيل التنبيهات
+            fetchInitialData();
+            
+            // بعد 3 ثوانٍ من بداية التشغيل، نسمح بمعالجة التنبيهات
+            setTimeout(() => {
+                alertProcessingEnabled = true;
+                console.log("✅ تم تفعيل نظام التنبيهات");
+            }, 3000);
+            
+            // إعداد تحديث البيانات الدوري
             setInterval(() => {
                 const now = Date.now();
                 if (now - lastFetchTime >= FETCH_CACHE_TIME && !fetchInProgress) {
-                    fetchData();
+                    if (initialLoadComplete) {
+                        fetchData();
+                    }
                 }
             }, 1000);
             
@@ -1210,6 +1238,124 @@
                 const seconds = String(now.getSeconds()).padStart(2, '0');
                 clockElement.textContent = `${hours}:${minutes}:${seconds}`;
             }, 1000);
+        }
+
+        async function fetchInitialData() {
+            if (!systemStarted || fetchInProgress) {
+                pendingFetch = true;
+                return;
+            }
+            
+            fetchInProgress = true;
+            const currentTime = Date.now();
+            
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                const res = await fetch(`${API_URL}?t=${currentTime}`, {
+                    signal: controller.signal,
+                    cache: 'no-store'
+                });
+                
+                clearTimeout(timeoutId);
+                const data = await res.json();
+                
+                lastFetchTime = currentTime;
+                lastOrdersData = data;
+                
+                document.getElementById('loader').style.display = 'none';
+                
+                // معالجة الطلبات الأولية بدون تنبيهات
+                processInitialOrders(data);
+                
+                // وضع علامة بأن التحميل الأولي اكتمل
+                initialLoadComplete = true;
+                
+                // إظهار رسالة نجاح
+                Swal.fire({
+                    toast: true,
+                    position: 'top-start',
+                    icon: 'success',
+                    title: 'تم تشغيل النظام بنجاح',
+                    text: 'سيتم تلقي التنبيهات للطلبات الجديدة',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    background: '#222',
+                    color: '#fff'
+                });
+
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error("Connection Error:", err);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ في الاتصال',
+                        text: 'فشل في الاتصال بالسيرفر، يرجى المحاولة مرة أخرى',
+                        background: '#222',
+                        color: '#fff'
+                    });
+                }
+            } finally {
+                fetchInProgress = false;
+                if (pendingFetch) {
+                    pendingFetch = false;
+                    setTimeout(fetchData, 100);
+                }
+            }
+        }
+
+        function processInitialOrders(orders) {
+            const activeGrid = document.getElementById('active-grid');
+            const completedGrid = document.getElementById('completed-grid');
+            
+            // Fast filtering with early exit
+            const filteredOrders = [];
+            for (let i = 0; i < orders.length; i++) {
+                const order = orders[i];
+                if (!deletedOrderIds.has(order.id)) {
+                    filteredOrders.push(order);
+                } else {
+                    const ticketElement = document.getElementById(`ticket-${order.id}`);
+                    if (ticketElement) {
+                        ticketElement.remove();
+                    }
+                }
+            }
+            
+            const activeOrders = [];
+            const completedOrders = [];
+            
+            for (let i = 0; i < filteredOrders.length; i++) {
+                const order = filteredOrders[i];
+                if (order.status !== 'Completed') {
+                    activeOrders.push(order);
+                    // تجميع معرفات الطلبات الأولية
+                    initialOrderIds.add(order.id);
+                } else {
+                    completedOrders.push(order);
+                }
+            }
+
+            document.getElementById('count-active').textContent = activeOrders.length;
+            document.getElementById('count-completed').textContent = completedOrders.length;
+
+            // إضافة جميع الطلبات الحالية إلى مجموعة الطلبات المبلغ عنها
+            // هذا يمنع ظهور تنبيهات للطلبات القديمة عند بداية التشغيل
+            for (let i = 0; i < activeOrders.length; i++) {
+                const order = activeOrders[i];
+                notifiedOrderIds.add(order.id);
+                // إذا كان الطلب معدلاً، نضيفه أيضاً
+                if (order.status === 'Updated') {
+                    notifiedOrderIds.add(`updated-${order.id}`);
+                }
+            }
+
+            // نعطي الوقت للمستخدم لرؤية الطلبات الحالية قبل أي تنبيهات
+            renderGrid(activeOrders, activeGrid, false);
+            renderGrid(completedOrders, completedGrid, true);
+            
+            console.log(`✅ تم تحميل ${activeOrders.length} طلب قيد التحضير و ${completedOrders.length} طلب مكتمل`);
         }
 
         function switchTab(tab) {
@@ -1277,6 +1423,12 @@
         }
 
         function processOrders(orders) {
+            // التأكد من أن التحميل الأولي قد اكتمل قبل معالجة التنبيهات
+            if (!initialLoadComplete || !alertProcessingEnabled) {
+                console.log("⏳ نظام التنبيهات غير مفعّل بعد");
+                return;
+            }
+            
             const activeGrid = document.getElementById('active-grid');
             const completedGrid = document.getElementById('completed-grid');
             
@@ -1314,41 +1466,68 @@
                 currentOrderIds.add(orders[i].id);
             }
             
-            // Check for deleted orders
-            for (const orderId of notifiedOrderIds) {
-                if (!currentOrderIds.has(orderId) && !deletedOrderIds.has(orderId)) {
-                    const deletedOrder = {
-                        id: orderId,
-                        type: 'Unknown',
-                        items: 'تم حذف الطلب',
-                        total: '0.000',
-                        time: new Date().toISOString(),
-                        pickupTime: 'فوري',
-                        phone: '',
-                        location: '',
-                        details: '',
-                        notes: 'تم حذف هذا الطلب من قبل الإدارة',
-                        paymentMethod: '',
-                        status: 'Deleted'
-                    };
-                    
-                    showDeleteAlert(deletedOrder);
-                    deletedOrderIds.add(orderId);
-                    notifiedOrderIds.delete(orderId);
+            // Check for deleted orders - فقط إذا كان التنبيهات مفعلة
+            if (alertProcessingEnabled) {
+                for (const orderId of notifiedOrderIds) {
+                    if (!currentOrderIds.has(orderId) && !deletedOrderIds.has(orderId) && 
+                        !orderId.toString().startsWith('updated-')) {
+                        
+                        // البحث عن الطلب المحذوف في البيانات القديمة
+                        let deletedOrder = null;
+                        if (lastOrdersData) {
+                            const oldOrder = lastOrdersData.find(o => o.id == orderId);
+                            if (oldOrder) {
+                                deletedOrder = {
+                                    ...oldOrder,
+                                    notes: 'تم حذف هذا الطلب من قبل الإدارة',
+                                    status: 'Deleted'
+                                };
+                            }
+                        }
+                        
+                        if (!deletedOrder) {
+                            deletedOrder = {
+                                id: orderId,
+                                type: 'Unknown',
+                                items: 'تم حذف الطلب',
+                                total: '0.000',
+                                time: new Date().toISOString(),
+                                pickupTime: 'فوري',
+                                phone: '',
+                                location: '',
+                                details: '',
+                                notes: 'تم حذف هذا الطلب من قبل الإدارة',
+                                paymentMethod: '',
+                                status: 'Deleted'
+                            };
+                        }
+                        
+                        showDeleteAlert(deletedOrder);
+                        deletedOrderIds.add(orderId);
+                        notifiedOrderIds.delete(orderId);
+                    }
                 }
             }
 
-            // Process new and updated orders
-            for (let i = 0; i < activeOrders.length; i++) {
-                const order = activeOrders[i];
-                if (!notifiedOrderIds.has(order.id)) {
-                    showAlert(order, 'new');
-                    notifiedOrderIds.add(order.id);
-                }
-                
-                if (order.status === 'Updated' && !notifiedOrderIds.has(`updated-${order.id}`)) {
-                    showAlert(order, 'updated');
-                    notifiedOrderIds.add(`updated-${order.id}`);
+            // Process new and updated orders - فقط إذا كان التنبيهات مفعلة
+            if (alertProcessingEnabled) {
+                for (let i = 0; i < activeOrders.length; i++) {
+                    const order = activeOrders[i];
+                    
+                    // التحقق من أن الطلب جديد (غير موجود في المجموعة الأولية)
+                    const isNewOrder = !initialOrderIds.has(order.id);
+                    
+                    if (isNewOrder && !notifiedOrderIds.has(order.id)) {
+                        showAlert(order, 'new');
+                        notifiedOrderIds.add(order.id);
+                        initialOrderIds.add(order.id); // إضافته للمجموعة الأولية
+                    }
+                    
+                    // التحقق من الطلبات المعدلة
+                    if (order.status === 'Updated' && !notifiedOrderIds.has(`updated-${order.id}`)) {
+                        showAlert(order, 'updated');
+                        notifiedOrderIds.add(`updated-${order.id}`);
+                    }
                 }
             }
 
@@ -1391,6 +1570,12 @@
         }
 
         function showAlert(order, type) {
+            // التحقق من أن نظام التنبيهات مفعل
+            if (!alertProcessingEnabled) {
+                console.log("⚠️ تم تجاهل التنبيه - النظام غير مفعّل بالكامل");
+                return;
+            }
+            
             currentAlertOrder = order;
             alertStartTime = Date.now();
             
@@ -1435,6 +1620,12 @@
         }
 
         function showDeleteAlert(order) {
+            // التحقق من أن نظام التنبيهات مفعل
+            if (!alertProcessingEnabled) {
+                console.log("⚠️ تم تجاهل تنبيه الحذف - النظام غير مفعّل بالكامل");
+                return;
+            }
+            
             currentAlertOrder = order;
             alertStartTime = Date.now();
             
@@ -1753,7 +1944,9 @@
                 let paymentHtml = '';
                 if(order.paymentMethod && order.paymentMethod.trim() !== "") {
                     const paymentText = formatPaymentMethod(order.paymentMethod);
-                    paymentHtml = `<div class="payment-method">
+                    const isCash = order.paymentMethod.toLowerCase().includes('cash');
+                    const paymentClass = isCash ? 'cash' : '';
+                    paymentHtml = `<div class="payment-method ${paymentClass}">
                         <i class="fas fa-credit-card"></i>
                         <span>طريقة الدفع: ${paymentText}</span>
                     </div>`;
