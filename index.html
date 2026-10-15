@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+    <link rel="preconnect" href="https://script.google.com">
+    <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>سفرة الدار | المطبخ</title>
@@ -1182,6 +1184,22 @@
             return calculateOrderSubtotal(order).toFixed(3);
         }
 
+        // ===== حالة الاتصال + إعادة المحاولة التلقائية =====
+        let consecutiveErrors = 0;
+        function setOnline(ok) {
+            const el = document.querySelector('.status');
+            if (!el) return;
+            if (ok) { consecutiveErrors = 0; el.textContent = '● ONLINE'; el.style.color = '#00c851'; }
+            else { consecutiveErrors++; el.textContent = '● إعادة الاتصال...'; el.style.color = '#ffbb33'; }
+        }
+        function currentPollDelay() {
+            // 3 ثوانٍ طبيعيًا، وتتباطأ تدريجيًا عند فشل الاتصال (حتى 30 ثانية) لتخفيف الضغط
+            return consecutiveErrors ? Math.min(30000, 3000 * Math.pow(2, consecutiveErrors)) : FETCH_CACHE_TIME;
+        }
+        // إعادة الجلب فورًا عند عودة الإنترنت أو عودة التبويب
+        window.addEventListener('online', () => { consecutiveErrors = 0; if (initialLoadComplete) fetchData(); else if (systemStarted) fetchInitialData(); });
+        document.addEventListener('visibilitychange', () => { if (!document.hidden && initialLoadComplete) fetchData(); });
+
         function startSystem() {
             document.getElementById('start-overlay').style.display = 'none';
             systemStarted = true;
@@ -1222,7 +1240,7 @@
             // إعداد تحديث البيانات الدوري
             setInterval(() => {
                 const now = Date.now();
-                if (now - lastFetchTime >= FETCH_CACHE_TIME && !fetchInProgress) {
+                if (now - lastFetchTime >= currentPollDelay() && !fetchInProgress) {
                     if (initialLoadComplete) {
                         fetchData();
                     }
@@ -1251,7 +1269,7 @@
             
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                const timeoutId = setTimeout(() => controller.abort(), 25000);
                 
                 const res = await fetch(`${API_URL}?t=${currentTime}`, {
                     signal: controller.signal,
@@ -1261,7 +1279,9 @@
                 clearTimeout(timeoutId);
                 const data = await res.json();
                 
-                lastFetchTime = currentTime;
+                if (!Array.isArray(data)) throw new Error('Invalid data');
+                setOnline(true);
+                lastFetchTime = Date.now();
                 lastOrdersData = data;
                 
                 document.getElementById('loader').style.display = 'none';
@@ -1286,9 +1306,13 @@
                 });
 
             } catch (err) {
-                if (err.name !== 'AbortError') {
+                setOnline(false);
+                lastFetchTime = Date.now();
+                // إعادة المحاولة تلقائيًا بدل توقف النظام
+                setTimeout(fetchInitialData, currentPollDelay());
+                if (err.name !== 'AbortError' && consecutiveErrors === 1) {
                     console.error("Connection Error:", err);
-                    Swal.fire({
+                    Swal.fire({ toast: true, position: 'top-start', showConfirmButton: false, timer: 3000,
                         icon: 'error',
                         title: 'خطأ في الاتصال',
                         text: 'فشل في الاتصال بالسيرفر، يرجى المحاولة مرة أخرى',
@@ -1393,7 +1417,7 @@
             
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                const timeoutId = setTimeout(() => controller.abort(), 25000);
                 
                 const res = await fetch(`${API_URL}?t=${currentTime}`, {
                     signal: controller.signal,
@@ -1403,13 +1427,16 @@
                 clearTimeout(timeoutId);
                 const data = await res.json();
                 
-                lastFetchTime = currentTime;
-                lastOrdersData = data;
-                
+                if (!Array.isArray(data)) throw new Error('Invalid data');
+                setOnline(true);
+                lastFetchTime = Date.now();
                 document.getElementById('loader').style.display = 'none';
                 processOrders(data);
+                lastOrdersData = data; // يُحدَّث بعد المعالجة حتى يعمل كشف الطلبات المحذوفة بشكل صحيح
 
             } catch (err) {
+                setOnline(false);
+                lastFetchTime = Date.now();
                 if (err.name !== 'AbortError') {
                     console.error("Connection Error:", err);
                 }
@@ -1426,6 +1453,7 @@
             // التأكد من أن التحميل الأولي قد اكتمل قبل معالجة التنبيهات
             if (!initialLoadComplete || !alertProcessingEnabled) {
                 console.log("⏳ نظام التنبيهات غير مفعّل بعد");
+                processInitialOrders(orders);
                 return;
             }
             
@@ -1547,7 +1575,7 @@
                 params.append('kitchenReceived', 'true');
                 
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const timeoutId = setTimeout(() => controller.abort(), 25000);
                 
                 const response = await fetch(API_URL, {
                     method: 'POST',
@@ -1834,7 +1862,19 @@
             currentAlertOrder = null;
         }
 
+        const gridSignatures = new WeakMap();
+        const MAX_COMPLETED_RENDER = 60; // عرض آخر 60 طلب مكتمل فقط لتخفيف الشاشة
         function renderGrid(orders, container, isCompleted) {
+            if (isCompleted && orders.length > MAX_COMPLETED_RENDER) {
+                orders = orders.slice().sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, MAX_COMPLETED_RENDER);
+            }
+            // إعادة الرسم فقط عند تغيّر البيانات فعليًا (يمنع اللاق والوميض كل 3 ثوانٍ)
+            const now = Date.now();
+            const recentKey = isCompleted ? '' : orders.filter(o => (now - new Date(o.time).getTime()) < 300000).map(o => o.id).join(',');
+            const sig = JSON.stringify(orders) + '|' + recentKey;
+            if (gridSignatures.get(container) === sig) return;
+            gridSignatures.set(container, sig);
+            const scrollY = container.scrollTop;
             // Fast clear
             container.textContent = '';
 
@@ -2053,6 +2093,7 @@
             }
             
             container.appendChild(fragment);
+            container.scrollTop = scrollY;
         }
 
         async function markDone(id) {
@@ -2063,7 +2104,7 @@
             
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const timeoutId = setTimeout(() => controller.abort(), 25000);
                 
                 const response = await fetch(API_URL, {
                     method: 'POST',
@@ -2073,8 +2114,8 @@
                 });
                 
                 clearTimeout(timeoutId);
-                
-                fetchData();
+                lastFetchTime = 0;
+                if (fetchInProgress) pendingFetch = true; else fetchData();
                 
                 if (currentAlertOrder && currentAlertOrder.id == id) {
                     document.getElementById('alert-overlay').style.display = 'none';
@@ -2087,6 +2128,7 @@
                 }
             } catch (error) {
                 if (error.name !== 'AbortError') {
+                    if (ticketElement) ticketElement.style.opacity = '1';
                     console.error('Error marking order as done:', error);
                     Swal.fire({
                         icon: 'error',
@@ -2107,7 +2149,7 @@
             
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const timeoutId = setTimeout(() => controller.abort(), 25000);
                 
                 const response = await fetch(API_URL, {
                     method: 'POST',
@@ -2117,10 +2159,11 @@
                 });
                 
                 clearTimeout(timeoutId);
-                
-                fetchData();
+                lastFetchTime = 0;
+                if (fetchInProgress) pendingFetch = true; else fetchData();
             } catch (error) {
                 if (error.name !== 'AbortError') {
+                    if (ticketElement) ticketElement.style.opacity = '1';
                     console.error('Error restoring order:', error);
                     Swal.fire({
                         icon: 'error',
